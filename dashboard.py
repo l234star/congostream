@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import date
-import random, os, json
+import random, os, json, tempfile
 import cloudinary
 import cloudinary.uploader
 
@@ -17,6 +17,21 @@ try:
     CLOUD_OK = True
 except:
     CLOUD_OK = False
+
+def upload_cloud(file_obj, folder):
+    if not file_obj or not CLOUD_OK:
+        return None
+    try:
+        suffix = os.path.splitext(file_obj.name)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(file_obj.getvalue())
+            tmp_path = tmp.name
+        res = cloudinary.uploader.upload(tmp_path, resource_type="auto", folder=folder)
+        os.remove(tmp_path)
+        return res.get("secure_url")
+    except Exception as e:
+        st.error(f"Erreur Cloudinary: {e}")
+        return None
 
 GENRES = ["Action","Animation","Aventure","Biopic","Comédie","Documentaire","Drame","Horreur","Erotique","Espionnage","Fantastique","Guerre","Policier","Romance","Science-fiction","Thriller","Western"]
 
@@ -42,18 +57,6 @@ if "menu_open" not in st.session_state: st.session_state.menu_open=False
 
 def save_films():
     with open(DATA_FILE,"w") as f: json.dump(st.session_state.films,f,indent=2,default=str)
-
-def upload_cloud(file_obj, folder):
-    if not CLOUD_OK: return None
-    try:
-        res = cloudinary.uploader.upload_large(file_obj, resource_type="video", folder=folder, chunk_size=6000000)
-        return res.get("secure_url")
-    except:
-        try:
-            res = cloudinary.uploader.upload(file_obj, resource_type="auto", folder=folder)
-            return res.get("secure_url")
-        except Exception as e:
-            st.error(f"Erreur Cloudinary: {e}"); return None
 
 # MENU GLASS
 st.markdown('<div class="glass-nav">', unsafe_allow_html=True)
