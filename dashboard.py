@@ -1,118 +1,134 @@
 import streamlit as st
-import json, os
-from datetime import datetime, timedelta
 
-st.set_page_config(page_title="CONGOSTREAM", layout="wide", page_icon="🎬")
+st.set_page_config(page_title="CONGOSTREAM", page_icon="🎬", layout="wide")
 
-FICHIER_VIDEOS = "videos.json"
-FICHIER_ABOS = "abonnements.json"
-MDP_ADMIN = "RolVie2002"
+# --- CSS NETFLIX PRO ---
+st.markdown("""
+<style>
+    .stApp { background-color: #000000; color: white; }
+    h1, h2, h3 { color: white; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    .netflix-red { color: #E50914; font-weight: 900; letter-spacing: 2px; }
+    .film-card {
+        background: #181818; border-radius: 8px; padding: 10px; 
+        transition: transform 0.3s; border: 1px solid #333;
+    }
+    .film-card:hover { transform: scale(1.05); border-color: #E50914; }
+    .genre-badge { background: #E50914; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .stButton>button { background-color: #E50914; color: white; border: none; font-weight: bold; border-radius: 4px; }
+    .stButton>button:hover { background-color: #b81d24; color: white; }
+    header {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
 
-def charger(fichier, defaut):
-    if os.path.exists(fichier):
-        with open(fichier, "r") as f:
-            return json.load(f)
-    return defaut
+# --- BASE DE DONNÉES ---
+if "films" not in st.session_state:
+    st.session_state.films = [
+        {"titre": "Boruto: Naruto Next", "categorie": "Série", "genre": "ANIMÉ", "annee": "2024", "youtube": "https://www.youtube.com/watch?v=Qp3b-Rhse9k", "image": "https://image.tmdb.org/t/p/w500/3V4kLQg0kFFjRfyGuGSK4U8ONr.jpg", "type": "Premium"},
+        {"titre": "Lupin - Braquage à Pointe-Noire", "categorie": "Film", "genre": "SUSPENSE", "annee": "2023", "youtube": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "image": "https://image.tmdb.org/t/p/w500/aAgGrfBwna1F90K7lhfoE2D4zq0.jpg", "type": "Premium"},
+        {"titre": "Amour à Brazzaville", "categorie": "Film", "genre": "ROMANTIQUE", "annee": "2024", "youtube": "https://www.youtube.com/watch?v=jNQXAC9IVRw", "image": "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg", "type": "Gratuit"},
+        {"titre": "Histoire du Congo", "categorie": "Documentaire", "genre": "GUERRE", "annee": "2022", "youtube": "https://www.youtube.com/watch?v=9bZkp7q19f0", "image": "https://image.tmdb.org/t/p/w500/7RyHsO4yDXtBv1zUU3mTpHeQd.jpg", "type": "Gratuit"},
+        {"titre": "Les Aventures de Kito", "categorie": "Série", "genre": "JEUNESSE", "annee": "2024", "youtube": "https://www.youtube.com/watch?v=kJQP7kiw5Fk", "image": "https://image.tmdb.org/t/p/w500/qW4crfED8mpNDadSmMdi7ZDzhXF.jpg", "type": "Gratuit"},
+    ]
 
-def sauver(fichier, data):
-    with open(fichier, "w") as f:
-        json.dump(data, f, indent=2)
+# --- HEADER NETFLIX ---
+col1, col2 = st.columns([1, 4])
+with col1:
+    st.markdown('<h1 class="netflix-red">CONGOSTREAM</h1>', unsafe_allow_html=True)
+with col2:
+    search = st.text_input("", placeholder="🔍 Rechercher un film, série, animé...", label_visibility="collapsed")
 
-videos = charger(FICHIER_VIDEOS, [
-    {"titre": "Boruto x Naruto - Extrait", "lien": "https://www.youtube.com/watch?v=Q5l9Y8R8f3E", "premium": False},
-    {"titre": "Boruto - Film Complet", "lien": "https://www.youtube.com/watch?v=Q5l9Y8R8f3E", "premium": True},
-])
-abos = charger(FICHIER_ABOS, [])
+# --- FILTRES CATÉGORIES ET GENRES ---
+st.markdown("###")
+c1, c2, c3 = st.columns([2,2,3])
+with c1:
+    cat_filtre = st.selectbox("📁 CATÉGORIE", ["TOUT", "Film", "Série", "Documentaire"])
+with c2:
+    genre_filtre = st.selectbox("🎭 GENRE", ["TOUS", "ANIMÉ", "SUSPENSE", "ROMANTIQUE", "GUERRE", "JEUNESSE", "ACTION", "COMÉDIE"])
+with c3:
+    menu = st.selectbox("MENU", ["Accueil", "Espace Associé - Seph", "S'abonner 3500F / 2 Mois"])
 
-def verifier_abo(transaction_id):
-    for abo in abos:
-        if abo["id"] == transaction_id:
-            date_fin = datetime.strptime(abo["fin"], "%Y-%m-%d")
-            if datetime.now() <= date_fin:
-                jours_restants = (date_fin - datetime.now()).days
-                return True, jours_restants, abo["fin"]
-            else:
-                return False, 0, abo["fin"]
-    return False, 0, ""
+# --- LOGIQUE AFFICHAGE ---
+if menu == "Accueil" or menu.startswith("Accueil"):
+    # Filtrage
+    films_filtres = st.session_state.films
+    if cat_filtre != "TOUT":
+        films_filtres = [f for f in films_filtres if f["categorie"] == cat_filtre]
+    if genre_filtre != "TOUS":
+        films_filtres = [f for f in films_filtres if f["genre"] == genre_filtre]
+    if search:
+        films_filtres = [f for f in films_filtres if search.lower() in f["titre"].lower()]
 
-menu = st.sidebar.selectbox("Menu", ["🎬 Voir les films", "🔑 Espace Associé"])
+    # Hero
+    if not search and cat_filtre=="TOUT" and genre_filtre=="TOUS":
+        st.video("https://www.youtube.com/watch?v=Qp3b-Rhse9k")
+        st.markdown("## 🔥 TENDANCE N°1 AU CONGO AUJOURD'HUI")
 
-if menu == "🎬 Voir les films":
-    st.title("🎬 CONGOSTREAM - 3500F / 2 Mois")
+    st.markdown(f"### {genre_filtre if genre_filtre!='TOUS' else cat_filtre if cat_filtre!='TOUT' else 'Pour Vous'}")
     
-    st.subheader("🟢 Gratuit")
-    for v in videos:
-        if not v["premium"]:
-            st.write(f"**{v['titre']}**")
-            st.video(v["lien"])
+    cols = st.columns(4)
+    for i, film in enumerate(films_filtres):
+        with cols[i % 4]:
+            st.markdown(f'<div class="film-card">', unsafe_allow_html=True)
+            st.image(film["image"], use_container_width=True)
+            st.markdown(f'<span class="genre-badge">{film["genre"]}</span> <small>{film["annee"]} • {film["categorie"]}</small>', unsafe_allow_html=True)
+            st.markdown(f'**{film["titre"]}**')
+            if film["type"] == "Premium":
+                st.caption("🔒 Premium - 3500F")
+            else:
+                st.caption("🟢 Gratuit")
+            
+            if st.button(f"▶️ Regarder", key=f"watch_{i}"):
+                st.session_state[f"play_{i}"] = True
+            
+            if st.session_state.get(f"play_{i}"):
+                st.video(film["youtube"])
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            st.write("")
 
-    st.divider()
-    st.markdown("""
-    ### 🔒 Premium - Abonnement 2 Mois = 3500 FCFA
-    **MTN Mobile Money : 066778924** | Tape *105#
-    """)
+elif "Espace Associé" in menu:
+    st.title("Espace Associé")
+    code = st.text_input("Mot de passe Seph :", type="password")
+    if st.button("🔓 ENTRÉE", use_container_width=True):
+        if code == "RolVie2002":
+            st.session_state["admin"] = True
+        else:
+            st.error("Code incorrect")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        tid_input = st.text_input("Entre ton ID de transaction MTN :")
-        if st.button("✅ Activer mon abonnement 2 mois"):
-            if tid_input:
-                existe, _, _ = verifier_abo(tid_input)
-                if not existe:
-                    fin = datetime.now() + timedelta(days=60)
-                    abos.append({"id": tid_input, "debut": datetime.now().strftime("%Y-%m-%d"), "fin": fin.strftime("%Y-%m-%d")})
-                    sauver(FICHIER_ABOS, abos)
-                    st.success(f"Abonnement activé jusqu'au {fin.strftime('%d/%m/%Y')} !")
-                    st.session_state["mon_id"] = tid_input
+    if st.session_state.get("admin"):
+        st.success("👋 Bienvenue Monsieur Seph NTOUMOU - Patron de CONGOSTREAM")
+        st.markdown("---")
+        with st.form("publish_pro", clear_on_submit=True):
+            st.subheader("📤 Publier du contenu PRO")
+            colA, colB = st.columns(2)
+            with colA:
+                titre = st.text_input("Titre du film/série *")
+                categorie = st.selectbox("Catégorie *", ["Film", "Série", "Documentaire"])
+                genre = st.selectbox("Genre *", ["ANIMÉ", "SUSPENSE", "ROMANTIQUE", "GUERRE", "JEUNESSE", "ACTION", "COMÉDIE", "DRAME"])
+            with colB:
+                annee = st.text_input("Année", value="2024")
+                youtube = st.text_input("Lien YouTube *")
+                image = st.text_input("Lien image affiche (optionnel)")
+                type_acc = st.selectbox("Accès", ["Gratuit", "Premium - 3500F"])
+            
+            publier = st.form_submit_button("🚀 PUBLIER SUR CONGOSTREAM", use_container_width=True)
+            if publier:
+                if titre and youtube:
+                    if not image:
+                        image = "https://via.placeholder.com/500x750/181818/E50914?text=CONGOSTREAM"
+                    st.session_state.films.append({
+                        "titre": titre, "categorie": categorie, "genre": genre, 
+                        "annee": annee, "youtube": youtube, "image": image, "type": type_acc
+                    })
+                    st.success(f"✅ {titre} ajouté en {categorie} > {genre} !")
+                    st.balloons()
                 else:
-                    st.session_state["mon_id"] = tid_input
-                    st.info("Abonnement retrouvé !")
-            else:
-                st.warning("Entre ton ID")
+                    st.warning("Titre et Lien YouTube obligatoires !")
 
-    with col2:
-        mon_id = st.session_state.get("mon_id", "")
-        if mon_id:
-            valide, jours, date_fin = verifier_abo(mon_id)
-            if valide:
-                st.success(f"✅ Abonnement valide jusqu'au {date_fin} - Il reste {jours} jours")
-                st.subheader("🎥 Films Premium")
-                for v in videos:
-                    if v["premium"]:
-                        st.write(f"**{v['titre']}**")
-                        st.video(v["lien"])
-            else:
-                st.error(f"❌ Abonnement expiré depuis le {date_fin}. Veuillez repayer 3500F au 066778924")
-                st.session_state["mon_id"] = ""
-
-else:
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding:30px; border-radius:15px; color:white; text-align:center;">
-        <h1>👋 Bienvenue Monsieur Seph NTOUMOU</h1>
-        <h3>Votre clientèle attend du nouveau contenu !</h3>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    mdp = st.text_input("Mot de passe :", type="password")
-    if mdp == MDP_ADMIN:
-        st.success("Accès autorisé")
-        st.balloons()
-        
-        st.subheader("💰 Gestion des abonnements (3500F / 2 mois)")
-        st.write(f"Total abonnés : {len(abos)}")
-        for abo in abos:
-            fin = datetime.strptime(abo["fin"], "%Y-%m-%d")
-            statut = "✅ Actif" if datetime.now() <= fin else "❌ Expiré"
-            st.write(f"ID: {abo['id']} | Fin: {abo['fin']} | {statut}")
-
-        st.divider()
-        st.subheader("📤 Publier contenu")
-        with st.form("ajout"):
-            titre = st.text_input("Titre")
-            lien = st.text_input("Lien YouTube")
-            premium = st.checkbox("Premium")
-            if st.form_submit_button("Publier"):
-                videos.append({"titre": titre, "lien": lien, "premium": premium})
-                sauver(FICHIER_VIDEOS, videos)
-                st.success("Publié !")
-                st.rerun()
+else: # Abonnement
+    st.markdown('<h1 class="netflix-red">3500F / 2 MOIS</h1>', unsafe_allow_html=True)
+    st.markdown("### Débloque tout le catalogue Premium 🇨🇬")
+    st.info("1️⃣ Envoie 3500F par MTN MoMo au **066778924**\n\n2️⃣ Entre l'ID de transaction")
+    id_mtn = st.text_input("ID MTN")
+    if st.button("Activer mon accès Premium"):
+        st.success("Reçu ! Accès Premium activé sous 10 min. Merci !")
