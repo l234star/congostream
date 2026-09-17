@@ -4,7 +4,7 @@ import random
 
 st.set_page_config(page_title="CONGOSTREAM", page_icon="🎬", layout="wide")
 
-# --- INTRO VERT JAUNE ROUGE + FOND AFRIQUE LIVE ---
+# INTRO VERT JAUNE ROUGE
 if "intro_done" not in st.session_state:
     st.markdown("""
     <div style="position:fixed;top:0;left:0;width:100%;height:100vh;z-index:99999;background:#000;display:flex;align-items:center;justify-content:center;animation: fadeOut 1s ease 3.5s forwards;">
@@ -26,162 +26,198 @@ if "intro_done" not in st.session_state:
 st.markdown("""
 <style>
 .stApp { background: radial-gradient(circle at top, #1a0a00 0%, #000 70%); color:white; }
-.netflix-title { color:#E50914; font-weight:900; font-size:38px; text-shadow: 0 0 15px #E50914; }
+.netflix-title { color:#E50914; font-weight:900; font-size:38px; }
 .film-card { background: rgba(20,20,20,0.95); border-radius:12px; padding:10px; border:1px solid #333; }
 .film-card:hover { border-color:#E50914; transform: translateY(-5px); transition:0.3s; }
+.badge-4k { background: gold; color:black; padding:2px 6px; border-radius:4px; font-weight:900; font-size:12px; }
+.badge-plus { background: #E50914; color:white; padding:2px 6px; border-radius:4px; font-size:11px; }
 .live-dot { width:10px; height:10px; background:#E50914; border-radius:50%; display:inline-block; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(229,9,20,0.7);} 70%{box-shadow:0 0 0 10px rgba(229,9,20,0);} 100%{box-shadow:0 0 0 0 rgba(229,9,20,0);} }
 header{visibility:hidden;}
+.stButton>button { background:#E50914; color:white; font-weight:bold; border-radius:6px; width:100%; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- DATA ---
 if "films" not in st.session_state:
     st.session_state.films = [
-        {"id":1, "titre":"Boruto Naruto Next", "categorie":"Série", "genre":"ANIMÉ", "annee":"2024", "youtube":"https://www.youtube.com/watch?v=Qp3b-Rhse9k", "trailer":"https://www.youtube.com/watch?v=Qp3b-Rhse9k", "image":"https://image.tmdb.org/t/p/w500/3V4kLQg0kFFjRfyGuGSK4U8ONr.jpg", "type":"Premium"},
-        {"id":2, "titre":"Amour à Brazzaville", "categorie":"Film", "genre":"ROMANTIQUE", "annee":"2024", "youtube":"https://www.youtube.com/watch?v=jNQXAC9IVRw", "trailer":"https://www.youtube.com/watch?v=jNQXAC9IVRw", "image":"https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg", "type":"Gratuit"},
+        {"id":1, "titre":"Boruto Naruto Next", "categorie":"Série", "genre":"ANIMÉ", "annee":"2024", "youtube":"https://www.youtube.com/watch?v=Qp3b-Rhse9k", "trailer":"https://www.youtube.com/watch?v=Qp3b-Rhse9k", "image":"https://image.tmdb.org/t/p/w500/3V4kLQg0kFFjRfyGuGSK4U8ONr.jpg", "type":"Premium", "qualite":"4K"},
+        {"id":2, "titre":"Amour à Brazzaville", "categorie":"Film", "genre":"ROMANTIQUE", "annee":"2024", "youtube":"https://www.youtube.com/watch?v=jNQXAC9IVRw", "trailer":"https://www.youtube.com/watch?v=jNQXAC9IVRw", "image":"https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg", "type":"Simple", "qualite":"HD"},
+        {"id":3, "titre":"Guerre du Congo - Doc", "categorie":"Documentaire", "genre":"GUERRE", "annee":"2023", "youtube":"https://www.youtube.com/watch?v=9bZkp7q19f0", "trailer":"https://www.youtube.com/watch?v=9bZkp7q19f0", "image":"https://image.tmdb.org/t/p/w500/7RyHsO4yDXtBv1zUU3mTpHeQd.jpg", "type":"Plus", "qualite":"4K"},
     ]
 if "accueil" not in st.session_state:
-    st.session_state.accueil = {"titre":"Boruto X Naruto - Exclu Congo", "desc":"Le combat final en exclusivité sur CONGOSTREAM - 3500F / 2 mois", "youtube":"https://www.youtube.com/watch?v=Qp3b-Rhse9k"}
+    st.session_state.accueil = {"titre":"Exclu Congo - 4K pour les PLUS", "desc":"Le Netflix du Congo", "youtube":"https://www.youtube.com/watch?v=Qp3b-Rhse9k"}
 if "abonnes" not in st.session_state:
-    st.session_state.abonnes = [{"nom":"Test Client", "id_mtn":"MTN123", "debut":"2026-09-01", "fin":"2026-11-01", "statut":"Actif"}]
+    st.session_state.abonnes = []
+if "user_tier" not in st.session_state:
+    st.session_state.user_tier = "Gratuit"
 
-# --- HEADER ---
+# HEADER
 c1, c2, c3 = st.columns([2,2,1])
 with c1: st.markdown('<div class="netflix-title">CONGOSTREAM <span class="live-dot"></span></div>', unsafe_allow_html=True)
-with c2: search = st.text_input("", placeholder="Rechercher...", label_visibility="collapsed")
-with c3: menu = st.selectbox("", ["Accueil", "Espace Associé", "S'abonner 3500F"], label_visibility="collapsed")
+with c2: search = st.text_input("", placeholder="Rechercher...", label_visibility="collapsed", key="search_main")
+with c3: menu = st.selectbox("", ["Accueil", "Espace Associé", "S'abonner"], label_visibility="collapsed", key="menu_main")
 
-# --- ACCUEIL ---
+# ACCUEIL AVEC 2 INTERFACES
 if menu == "Accueil":
     a = st.session_state.accueil
     st.video(a["youtube"])
-    st.markdown(f"## {a['titre']}")
-    st.write(a["desc"])
+
+    # SELECTEUR DE FORFAIT POUR VOIR LA DIFFERENCE
+    tier = st.selectbox("👤 Mon forfait actuel:", ["Gratuit", "Simple - 3500F", "Plus - 5000F"], key="tier_selector")
+    if "Plus" in tier: st.session_state.user_tier = "Plus"
+    elif "Simple" in tier: st.session_state.user_tier = "Simple"
+    else: st.session_state.user_tier = "Gratuit"
+
+    if st.session_state.user_tier == "Plus":
+        st.markdown("""
+        <div style="background:linear-gradient(90deg, gold, #E50914);padding:15px;border-radius:10px;color:black;font-weight:bold;">
+        👑 MODE PLUS ACTIVÉ - 4K | Film à la demande | Réservation 24h | Assistance 24h/24
+        </div>
+        """, unsafe_allow_html=True)
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            with st.form("demande_film"):
+                st.markdown("**🎬 Film à la demande**")
+                demande = st.text_input("Quel film veux-tu?")
+                if st.form_submit_button("🔓 ENTRÉE - Demander"):
+                    st.success(f"Demande '{demande}' envoyée au Boss! Disponible sous 24h")
+        with col2:
+            with st.form("reservation"):
+                st.markdown("**📅 Réserver un film (24h)**")
+                resa = st.selectbox("Choisir", [f["titre"] for f in st.session_state.films])
+                if st.form_submit_button("🔓 ENTRÉE - Réserver"):
+                    st.success(f"{resa} réservé 24h pour toi!")
+        with col3:
+            st.markdown("**💬 Assistance Rapide 24h/24**")
+            st.link_button("WhatsApp Assistance PLUS", "https://wa.me/242066778924")
+    else:
+        st.info("Passe en PLUS à 5000F pour avoir 4K, film à la demande, réservation et assistance 24h/24")
+
     st.divider()
-    
-    col_f1, col_f2 = st.columns(2)
-    with col_f1: cat_f = st.selectbox("CATEGORIE", ["TOUT", "Film", "Série", "Documentaire"])
-    with col_f2: genre_f = st.selectbox("GENRE", ["TOUS", "ANIMÉ", "SUSPENSE", "ROMANTIQUE", "GUERRE", "JEUNESSE", "ACTION", "COMÉDIE"])
-    
+    cat_f = st.selectbox("CATEGORIE", ["TOUT", "Film", "Série", "Documentaire"], key="cat_acc")
+    genre_f = st.selectbox("GENRE", ["TOUS", "ANIMÉ", "SUSPENSE", "ROMANTIQUE", "GUERRE", "JEUNESSE", "ACTION"], key="genre_acc")
+
     films = st.session_state.films
-    if cat_f != "TOUT": films = [f for f in films if f["categorie"] == cat_f]
-    if genre_f != "TOUS": films = [f for f in films if f["genre"] == genre_f]
+    if cat_f!= "TOUT": films = [f for f in films if f["categorie"] == cat_f]
+    if genre_f!= "TOUS": films = [f for f in films if f["genre"] == genre_f]
     if search: films = [f for f in films if search.lower() in f["titre"].lower()]
-    
+
     cols = st.columns(4)
     for i, film in enumerate(films):
+        # LOGIQUE SIMPLE vs PLUS
+        is_4k = film.get("qualite") == "4K"
+        can_watch = True
+        if is_4k and st.session_state.user_tier!= "Plus":
+            can_watch = False
+
         with cols[i % 4]:
             st.markdown('<div class="film-card">', unsafe_allow_html=True)
             st.image(film["image"], use_container_width=True)
-            st.markdown(f"**{film['titre']}**")
-            st.caption(f"{film['genre']} | {film['categorie']} | {film['annee']}")
-            if st.button("Bande annonce", key=f"b_{film['id']}"): st.video(film["trailer"])
-            if st.button("Regarder", key=f"r_{film['id']}"): st.video(film["youtube"])
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.write("")
+            badge = f'<span class="badge-4k">4K</span>' if is_4k else '<span class="badge-plus">HD</span>'
+            st.markdown(f"{badge} **{film['titre']}**", unsafe_allow_html=True)
+            st.caption(f"{film['genre']} | {film['categorie']}")
 
-# --- ESPACE ASSOCIE ---
+            if not can_watch:
+                st.warning("🔒 4K réservé aux PLUS (5000F)")
+            else:
+                if st.button("Bande annonce", key=f"b_{film['id']}"): st.video(film["trailer"])
+                if st.button("Regarder", key=f"r_{film['id']}"): st.video(film["youtube"])
+            st.markdown('</div>', unsafe_allow_html=True)
+
+# ESPACE ASSOCIE
 elif menu == "Espace Associé":
     st.title("Espace Associé")
-    st.caption("Directeur: Seph NTOUMOU | BOSS: Toi (Patron)")
-    code = st.text_input("Code Directeur / Boss", type="password")
-    if st.button("ENTREE", use_container_width=True):
-        if code == "RolVie2002":
-            st.session_state["admin"] = True
-        else:
-            st.error("Mauvais code")
+    if not st.session_state.get("admin"):
+        st.markdown("### 🔒 Accès sécurisé BOSS / Directeur")
+        code = st.text_input("Code", type="password", key="code_seph")
+        if st.button("🔓 ENTRÉE", key="btn_entree_code", use_container_width=True):
+            if code == "RolVie2002":
+                st.session_state["admin"] = True
+                st.rerun()
+            else: st.error("Mauvais code")
+        st.stop()
 
-    if st.session_state.get("admin"):
-        st.success("Bienvenue Patron - Directeur Seph, vous pouvez gérer")
-        t1, t2, t3, t4 = st.tabs(["Publier (Upload)", "Gerer Films", "Modifier Accueil", "Abonnements"])
+    st.success("Bienvenue Patron!")
+    if st.button("Déconnexion"): st.session_state["admin"]=False; st.rerun()
 
-        with t1:
-            st.subheader("Publier nouveau contenu - Avec Upload")
-            with st.form("pub_form", clear_on_submit=True):
-                titre = st.text_input("Titre *")
-                cA, cB = st.columns(2)
-                with cA:
-                    categorie = st.selectbox("Categorie", ["Film", "Série", "Documentaire"])
-                    genre = st.selectbox("Genre", ["ANIMÉ", "SUSPENSE", "ROMANTIQUE", "GUERRE", "JEUNESSE", "ACTION", "COMÉDIE"])
-                with cB:
-                    annee = st.text_input("Annee", "2024")
-                    type_ac = st.selectbox("Type", ["Gratuit", "Premium - 3500F"])
-                
-                st.markdown("**Bande annonce (obligatoire pour Film ET Série)**")
-                trailer_link = st.text_input("Lien YouTube Bande Annonce *")
-                trailer_upload = st.file_uploader("OU Upload Bande Annonce depuis dossier", type=["mp4", "mov", "avi"])
-                
-                st.markdown("**Film / Série complet**")
-                film_link = st.text_input("Lien YouTube Film Complet")
-                film_upload = st.file_uploader("OU Upload Film Complet depuis dossier", type=["mp4", "mov", "avi", "mkv"])
-                
-                st.markdown("**Pochette / Affiche**")
-                image_link = st.text_input("Lien image pochette https://...")
-                image_upload = st.file_uploader("OU Upload Pochette depuis dossier", type=["jpg", "png", "jpeg", "webp"])
-                
-                pub = st.form_submit_button("PUBLIER MAINTENANT", use_container_width=True)
-                if pub:
-                    if titre and (trailer_link or trailer_upload):
-                        final_trailer = trailer_link if trailer_link else "upload_trailer"
-                        final_film = film_link if film_link else "upload_film"
-                        final_image = image_link if image_link else "https://via.placeholder.com/500x750/000000/E50914?text=CONGOSTREAM"
-                        st.session_state.films.append({"id": random.randint(100,9999), "titre":titre, "categorie":categorie, "genre":genre, "annee":annee, "youtube":final_film, "trailer":final_trailer, "image":final_image, "type":type_ac})
-                        st.success(f"{titre} publie !")
-                        st.balloons()
-                    else:
-                        st.warning("Titre + Bande annonce obligatoire")
+    t1, t2, t3, t4 = st.tabs(["Publier", "Gérer Films", "Accueil", "Abonnements Simple / Plus"])
 
-        with t2:
-            st.subheader("Gerer - Changer pochette et bande annonce")
-            for film in st.session_state.films:
-                with st.expander(f"{film['titre']} - {film['genre']}"):
-                    col1, col2 = st.columns([1,2])
-                    with col1: st.image(film["image"], width=150)
-                    with col2:
-                        nt = st.text_input("Titre", film["titre"], key=f"tit{film['id']}")
-                        ni = st.text_input("Lien pochette", film["image"], key=f"img{film['id']}")
-                        ntr = st.text_input("Lien bande annonce", film["trailer"], key=f"tra{film['id']}")
-                        ny = st.text_input("Lien film complet", film["youtube"], key=f"yt{film['id']}")
-                        up_img = st.file_uploader("Nouvelle pochette upload", type=["jpg","png"], key=f"upimg{film['id']}")
-                        up_tr = st.file_uploader("Nouvelle bande annonce upload", type=["mp4","mov"], key=f"uptr{film['id']}")
-                        if st.button("Sauver", key=f"sv{film['id']}"):
-                            film["titre"]=nt; film["image"]=ni; film["trailer"]=ntr; film["youtube"]=ny
-                            st.success("Sauve"); st.rerun()
-                        if st.button("Supprimer", key=f"del{film['id']}"):
-                            st.session_state.films = [f for f in st.session_state.films if f["id"] != film["id"]]
-                            st.rerun()
+    with t1:
+        with st.form("pub_form_v8", clear_on_submit=True):
+            titre = st.text_input("Titre *")
+            cA, cB = st.columns(2)
+            with cA:
+                categorie = st.selectbox("Catégorie", ["Film", "Série", "Documentaire"])
+                genre = st.selectbox("Genre", ["ANIMÉ", "SUSPENSE", "ROMANTIQUE", "GUERRE", "JEUNESSE", "ACTION"])
+            with cB:
+                annee = st.text_input("Année", "2024")
+                qualite = st.selectbox("Qualité", ["HD - Pour Simple", "4K - Pour PLUS"])
+                type_ac = st.selectbox("Forfait requis", ["Gratuit", "Simple - 3500F", "Plus - 5000F (4K)"])
 
-        with t3:
-            st.subheader("Modifier Accueil")
-            acc = st.session_state.accueil
-            acc["titre"] = st.text_input("Titre Accueil", acc["titre"])
-            acc["desc"] = st.text_area("Description", acc["desc"])
-            acc["youtube"] = st.text_input("Youtube Accueil", acc["youtube"])
-            if st.button("Sauver Accueil"): st.success("Accueil modifie")
+            trailer_link = st.text_input("Lien Bande Annonce *")
+            trailer_file = st.file_uploader("OU Upload Bande Annonce (illimité)", type=["mp4","mov","avi","mkv"])
+            film_link = st.text_input("Lien Film Complet")
+            film_file = st.file_uploader("OU Upload Film Complet (illimité - 10Go max)", type=["mp4","mkv","mov","avi"])
+            image_link = st.text_input("Lien pochette")
+            image_file = st.file_uploader("OU Upload Pochette", type=["jpg","png","jpeg","webp"])
 
-        with t4:
-            st.subheader("Abonnements Actifs / Expires")
-            actifs = [a for a in st.session_state.abonnes if a["statut"]=="Actif"]
-            expires = [a for a in st.session_state.abonnes if a["statut"]=="Expire" or a["statut"]=="Expiré"]
-            colA, colB = st.columns(2)
-            with colA:
-                st.markdown(f"**Actifs: {len(actifs)}**")
-                for ab in actifs:
-                    st.success(f"{ab['nom']} - {ab['id_mtn']} - Fin {ab['fin']}")
-            with colB:
-                st.markdown(f"**Expires: {len(expires)}**")
-                for ab in expires:
-                    st.error(f"{ab['nom']} - {ab['id_mtn']}")
+            if st.form_submit_button("🔓 ENTRÉE - PUBLIER", use_container_width=True):
+                if titre and (trailer_link or trailer_file):
+                    final_q = "4K" if "4K" in qualite else "HD"
+                    st.session_state.films.append({"id": random.randint(100,9999), "titre":titre, "categorie":categorie, "genre":genre, "annee":annee, "youtube":film_link or "upload", "trailer":trailer_link or "upload", "image":image_link or "https://via.placeholder.com/500x750/000000/E50914?text=CONGOSTREAM", "type":type_ac, "qualite":final_q})
+                    st.success("Publié!"); st.balloons()
+                else: st.warning("Titre + Bande annonce obligatoire")
 
-else:
-    st.markdown('<h1 style="color:#E50914;">3500F / 2 MOIS - PREMIUM</h1>', unsafe_allow_html=True)
-    st.info("MTN MoMo: 066778924 - Entre ton nom et ID apres paiement")
-    with st.form("ab_form"):
-        nom = st.text_input("Nom")
-        idm = st.text_input("ID MTN")
-        if st.form_submit_button("Activer"):
-            debut = datetime.now().strftime("%Y-%m-%d")
+    with t2:
+        for film in st.session_state.films:
+            with st.expander(f"{film['titre']} - {film['qualite']}"):
+                st.image(film["image"], width=150)
+                if st.button("Supprimer", key=f"del_{film['id']}"):
+                    st.session_state.films = [f for f in st.session_state.films if f["id"]!= film["id"]]; st.rerun()
+
+    with t3:
+        acc = st.session_state.accueil
+        acc["titre"] = st.text_input("Titre Accueil", acc["titre"])
+        acc["youtube"] = st.text_input("Youtube Accueil", acc["youtube"])
+        if st.button("🔓 ENTRÉE - Sauver Accueil"): st.success("Sauvé")
+
+    with t4:
+        st.subheader("Abonnements")
+        simples = [a for a in st.session_state.abonnes if "Simple" in a.get("type","")]
+        plus = [a for a in st.session_state.abonnes if "Plus" in a.get("type","")]
+        cA, cB = st.columns(2)
+        with cA:
+            st.markdown(f"### Simple 3500F ({len(simples)}) - HD")
+            for ab in simples: st.info(f"{ab['nom']} - {ab['id_mtn']} - Fin {ab['fin']}")
+        with cB:
+            st.markdown(f"### 👑 Plus 5000F ({len(plus)}) - 4K + Demande + 24h")
+            for ab in plus: st.success(f"{ab['nom']} - {ab['id_mtn']} - Fin {ab['fin']}")
+
+else: # ABONNEMENT
+    st.markdown('<h1 style="color:#E50914;">Choisis ton abonnement</h1>', unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        <div style="border:2px solid #333;padding:20px;border-radius:15px;background:#111;">
+        <h2>SIMPLE - 3500F / 2 Mois</h2>
+        <p>✅ Tous les films & séries en HD<br>✅ Accès illimité<br>❌ Pas de 4K<br>❌ Pas de film à la demande</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        st.markdown("""
+        <div style="border:2px solid gold;padding:20px;border-radius:15px;background:linear-gradient(135deg, #1a0a00, #000);">
+        <h2 style="color:gold;">👑 PLUS - 5000F / 2 Mois</h2>
+        <p>✅ Tout en SIMPLE +<br>✅ <b>Films en 4K Ultra</b><br>✅ <b>Film à la demande</b><br>✅ <b>Réservation 24h</b><br>✅ <b>Assistance rapide 24h/24</b></p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+    with st.form("abonnement_form"):
+        nom = st.text_input("Ton nom")
+        idm = st.text_input("ID transaction MTN (066778924)")
+        type_choisi = st.selectbox("Forfait choisi", ["Simple - 3500F", "Plus - 5000F"])
+        if st.form_submit_button("🔓 ENTRÉE - Activer mon abonnement", use_container_width=True):
             fin = (datetime.now() + timedelta(days=60)).strftime("%Y-%m-%d")
-            st.session_state.abonnes.append({"nom":nom, "id_mtn":idm, "debut":debut, "fin":fin, "statut":"Actif"})
-            st.success(f"Merci {nom}, actif jusquau {fin}")
+            st.session_state.abonnes.append({"nom":nom, "id_mtn":idm, "debut":datetime.now().strftime("%Y-%m-%d"), "fin":fin, "statut":"Actif", "type":type_choisi})
+            st.success(f"Merci {nom}! Forfait {type_choisi} actif jusqu'au {fin}. Interface {'PLUS 4K' if 'Plus' in type_choisi else 'Simple HD'} débloquée!")
+            st.balloons()
