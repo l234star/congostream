@@ -1,134 +1,90 @@
 import streamlit as st
+from datetime import datetime, timedelta
+import random
+import time
 
 st.set_page_config(page_title="CONGOSTREAM", page_icon="🎬", layout="wide")
 
-# --- CSS NETFLIX PRO ---
+# --- INTRO VERT JAUNE ROUGE ANIMÉE (une seule fois) ---
+if "intro_done" not in st.session_state:
+    st.markdown("""
+    <style>
+        .intro-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            z-index: 999999; display: flex; align-items: center; justify-content: center;
+            background: #000; overflow: hidden; animation: introFadeOut 1s ease 4s forwards;
+        }
+        .color-bar { height: 100vh; width: 33.33%; position: absolute; top: 0; transform: translateY(100%); }
+        .bar-green { background: #009543; left: 0; animation: slideUp 0.8s ease 0.2s forwards; }
+        .bar-yellow { background: #FBDE4A; left: 33.33%; animation: slideUp 0.8s ease 0.5s forwards; }
+        .bar-red { background: #DC241F; left: 66.66%; animation: slideUp 0.8s ease 0.8s forwards; }
+        .intro-logo {
+            z-index: 10; font-size: 60px; font-weight: 900; color: white; letter-spacing: 8px;
+            text-shadow: 0 0 30px rgba(0,0,0,0.9); opacity: 0; animation: logoZoom 1s ease 1.5s forwards;
+            font-family: 'Helvetica Neue', sans-serif;
+        }
+        .intro-logo span { color: #FBDE4A; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0%); } }
+        @keyframes logoZoom { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+        @keyframes introFadeOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
+        .africa-pattern { position: absolute; width: 100%; height: 100%; opacity: 0.05; background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0z M40 40h40v40H40z' fill='%23FBDE4A'/%3E%3C/svg%3E"); }
+    </style>
+    <div class="intro-container">
+        <div class="africa-pattern"></div>
+        <div class="color-bar bar-green"></div>
+        <div class="color-bar bar-yellow"></div>
+        <div class="color-bar bar-red"></div>
+        <div class="intro-logo">CONGO<span>STREAM</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+    time.sleep(4.5)
+    st.session_state.intro_done = True
+    st.rerun()
+
+# --- FOND LIVE AFRICAIN NOIR ROUGE + TOUCHES VERT JAUNE ROUGE ---
 st.markdown("""
 <style>
-    .stApp { background-color: #000000; color: white; }
-    h1, h2, h3 { color: white; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-    .netflix-red { color: #E50914; font-weight: 900; letter-spacing: 2px; }
-    .film-card {
-        background: #181818; border-radius: 8px; padding: 10px; 
-        transition: transform 0.3s; border: 1px solid #333;
+    .stApp {
+        background: #000000;
+        background-image: 
+            radial-gradient(circle at 15% 20%, rgba(0,149,67,0.18) 0%, transparent 35%),
+            radial-gradient(circle at 50% 50%, rgba(251,222,74,0.10) 0%, transparent 40%),
+            radial-gradient(circle at 85% 80%, rgba(220,36,31,0.25) 0%, transparent 40%),
+            linear-gradient(180deg, rgba(0,0,0,0.9) 0%, #000 100%);
+        background-attachment: fixed;
     }
-    .film-card:hover { transform: scale(1.05); border-color: #E50914; }
-    .genre-badge { background: #E50914; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-    .stButton>button { background-color: #E50914; color: white; border: none; font-weight: bold; border-radius: 4px; }
-    .stButton>button:hover { background-color: #b81d24; color: white; }
+    .stApp::before {
+        content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='10' y='60' font-size='30' opacity='0.03'%3E◍⬢⬣⬔%3C/text%3E%3C/svg%3E");
+        animation: drift 60s linear infinite; pointer-events: none; z-index: 0;
+    }
+    @keyframes drift { from { background-position: 0 0; } to { background-position: 500px 500px; } }
+    
+    .netflix-red { color: #E50914; font-weight: 900; font-size: 42px; letter-spacing: 3px; text-shadow: 0 0 25px #E50914, 0 0 10px #FBDE4A; }
+    .boss-badge { background: linear-gradient(90deg, #009543, #FBDE4A, #DC241F); color: black; font-weight: 900; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+    .film-card { background: rgba(18,18,18,0.92); border-radius: 14px; padding: 12px; border: 1px solid #333; backdrop-filter: blur(12px); position: relative; overflow: hidden; }
+    .film-card::after { content: ""; position: absolute; top: 0; left: 0; height: 3px; width: 100%; background: linear-gradient(90deg, #009543, #FBDE4A, #DC241F); }
+    .film-card:hover { transform: translateY(-10px) scale(1.03); border-color: #E50914; box-shadow: 0 15px 35px rgba(229,9,20,0.5), 0 0 20px rgba(251,222,74,0.2); transition: 0.4s; }
+    .live-dot { height: 12px; width: 12px; background: #009543; border-radius: 50%; display: inline-block; animation: pulseAfrica 1.2s infinite; border: 2px solid #FBDE4A; }
+    @keyframes pulseAfrica { 0% { box-shadow: 0 0 0 0 rgba(0,149,67,0.8); } 70% { box-shadow: 0 0 0 12px rgba(0,149,67,0); } 100% { box-shadow: 0 0 0 0 rgba(0,149,67,0); } }
+    .stButton>button { background: linear-gradient(90deg, #E50914, #b81d24); color: white; font-weight: bold; border-radius: 8px; border: none; }
+    .stFileUploader { background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px dashed #FBDE4A; }
     header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# --- BASE DE DONNÉES ---
+# --- DATA ---
 if "films" not in st.session_state:
     st.session_state.films = [
-        {"titre": "Boruto: Naruto Next", "categorie": "Série", "genre": "ANIMÉ", "annee": "2024", "youtube": "https://www.youtube.com/watch?v=Qp3b-Rhse9k", "image": "https://image.tmdb.org/t/p/w500/3V4kLQg0kFFjRfyGuGSK4U8ONr.jpg", "type": "Premium"},
-        {"titre": "Lupin - Braquage à Pointe-Noire", "categorie": "Film", "genre": "SUSPENSE", "annee": "2023", "youtube": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "image": "https://image.tmdb.org/t/p/w500/aAgGrfBwna1F90K7lhfoE2D4zq0.jpg", "type": "Premium"},
-        {"titre": "Amour à Brazzaville", "categorie": "Film", "genre": "ROMANTIQUE", "annee": "2024", "youtube": "https://www.youtube.com/watch?v=jNQXAC9IVRw", "image": "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg", "type": "Gratuit"},
-        {"titre": "Histoire du Congo", "categorie": "Documentaire", "genre": "GUERRE", "annee": "2022", "youtube": "https://www.youtube.com/watch?v=9bZkp7q19f0", "image": "https://image.tmdb.org/t/p/w500/7RyHsO4yDXtBv1zUU3mTpHeQd.jpg", "type": "Gratuit"},
-        {"titre": "Les Aventures de Kito", "categorie": "Série", "genre": "JEUNESSE", "annee": "2024", "youtube": "https://www.youtube.com/watch?v=kJQP7kiw5Fk", "image": "https://image.tmdb.org/t/p/w500/qW4crfED8mpNDadSmMdi7ZDzhXF.jpg", "type": "Gratuit"},
+        {"id":1, "titre": "Boruto: Naruto Next", "categorie": "Série", "genre": "ANIMÉ", "annee": "2024", "youtube": "https://www.youtube.com/watch?v=Qp3b-Rhse9k", "trailer": "https://www.youtube.com/watch?v=Qp3b-Rhse9k", "image": "https://image.tmdb.org/t/p/w500/3V4kLQg0kFFjRfyGuGSK4U8ONr.jpg", "type": "Premium", "video_file": None},
     ]
+if "accueil" not in st.session_state:
+    st.session_state.accueil = {"titre": "EXCLUSIVITÉ CONGO - LE FILM DE L'ANNÉE", "desc": "BOSS, votre plateforme est LIVE. Vert Jaune Rouge pour le peuple.", "youtube": "https://www.youtube.com/watch?v=Qp3b-Rhse9k", "image": ""}
+if "abonnes" not in st.session_state:
+    st.session_state.abonnes = [{"nom": "Client Test", "id_mtn": "MTN123456", "debut": "2026-09-01", "fin": "2026-11-01", "statut": "Actif"}]
 
-# --- HEADER NETFLIX ---
-col1, col2 = st.columns([1, 4])
-with col1:
-    st.markdown('<h1 class="netflix-red">CONGOSTREAM</h1>', unsafe_allow_html=True)
-with col2:
-    search = st.text_input("", placeholder="🔍 Rechercher un film, série, animé...", label_visibility="collapsed")
-
-# --- FILTRES CATÉGORIES ET GENRES ---
-st.markdown("###")
-c1, c2, c3 = st.columns([2,2,3])
-with c1:
-    cat_filtre = st.selectbox("📁 CATÉGORIE", ["TOUT", "Film", "Série", "Documentaire"])
-with c2:
-    genre_filtre = st.selectbox("🎭 GENRE", ["TOUS", "ANIMÉ", "SUSPENSE", "ROMANTIQUE", "GUERRE", "JEUNESSE", "ACTION", "COMÉDIE"])
-with c3:
-    menu = st.selectbox("MENU", ["Accueil", "Espace Associé - Seph", "S'abonner 3500F / 2 Mois"])
-
-# --- LOGIQUE AFFICHAGE ---
-if menu == "Accueil" or menu.startswith("Accueil"):
-    # Filtrage
-    films_filtres = st.session_state.films
-    if cat_filtre != "TOUT":
-        films_filtres = [f for f in films_filtres if f["categorie"] == cat_filtre]
-    if genre_filtre != "TOUS":
-        films_filtres = [f for f in films_filtres if f["genre"] == genre_filtre]
-    if search:
-        films_filtres = [f for f in films_filtres if search.lower() in f["titre"].lower()]
-
-    # Hero
-    if not search and cat_filtre=="TOUT" and genre_filtre=="TOUS":
-        st.video("https://www.youtube.com/watch?v=Qp3b-Rhse9k")
-        st.markdown("## 🔥 TENDANCE N°1 AU CONGO AUJOURD'HUI")
-
-    st.markdown(f"### {genre_filtre if genre_filtre!='TOUS' else cat_filtre if cat_filtre!='TOUT' else 'Pour Vous'}")
-    
-    cols = st.columns(4)
-    for i, film in enumerate(films_filtres):
-        with cols[i % 4]:
-            st.markdown(f'<div class="film-card">', unsafe_allow_html=True)
-            st.image(film["image"], use_container_width=True)
-            st.markdown(f'<span class="genre-badge">{film["genre"]}</span> <small>{film["annee"]} • {film["categorie"]}</small>', unsafe_allow_html=True)
-            st.markdown(f'**{film["titre"]}**')
-            if film["type"] == "Premium":
-                st.caption("🔒 Premium - 3500F")
-            else:
-                st.caption("🟢 Gratuit")
-            
-            if st.button(f"▶️ Regarder", key=f"watch_{i}"):
-                st.session_state[f"play_{i}"] = True
-            
-            if st.session_state.get(f"play_{i}"):
-                st.video(film["youtube"])
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.write("")
-
-elif "Espace Associé" in menu:
-    st.title("Espace Associé")
-    code = st.text_input("Mot de passe Seph :", type="password")
-    if st.button("🔓 ENTRÉE", use_container_width=True):
-        if code == "RolVie2002":
-            st.session_state["admin"] = True
-        else:
-            st.error("Code incorrect")
-
-    if st.session_state.get("admin"):
-        st.success("👋 Bienvenue Monsieur Seph NTOUMOU - Patron de CONGOSTREAM")
-        st.markdown("---")
-        with st.form("publish_pro", clear_on_submit=True):
-            st.subheader("📤 Publier du contenu PRO")
-            colA, colB = st.columns(2)
-            with colA:
-                titre = st.text_input("Titre du film/série *")
-                categorie = st.selectbox("Catégorie *", ["Film", "Série", "Documentaire"])
-                genre = st.selectbox("Genre *", ["ANIMÉ", "SUSPENSE", "ROMANTIQUE", "GUERRE", "JEUNESSE", "ACTION", "COMÉDIE", "DRAME"])
-            with colB:
-                annee = st.text_input("Année", value="2024")
-                youtube = st.text_input("Lien YouTube *")
-                image = st.text_input("Lien image affiche (optionnel)")
-                type_acc = st.selectbox("Accès", ["Gratuit", "Premium - 3500F"])
-            
-            publier = st.form_submit_button("🚀 PUBLIER SUR CONGOSTREAM", use_container_width=True)
-            if publier:
-                if titre and youtube:
-                    if not image:
-                        image = "https://via.placeholder.com/500x750/181818/E50914?text=CONGOSTREAM"
-                    st.session_state.films.append({
-                        "titre": titre, "categorie": categorie, "genre": genre, 
-                        "annee": annee, "youtube": youtube, "image": image, "type": type_acc
-                    })
-                    st.success(f"✅ {titre} ajouté en {categorie} > {genre} !")
-                    st.balloons()
-                else:
-                    st.warning("Titre et Lien YouTube obligatoires !")
-
-else: # Abonnement
-    st.markdown('<h1 class="netflix-red">3500F / 2 MOIS</h1>', unsafe_allow_html=True)
-    st.markdown("### Débloque tout le catalogue Premium 🇨🇬")
-    st.info("1️⃣ Envoie 3500F par MTN MoMo au **066778924**\n\n2️⃣ Entre l'ID de transaction")
-    id_mtn = st.text_input("ID MTN")
-    if st.button("Activer mon accès Premium"):
-        st.success("Reçu ! Accès Premium activé sous 10 min. Merci !")
+# --- HEADER BOSS / DIRECTEUR ---
+c1, c2, c3 = st.columns([2.5, 3, 1.5])
+with c1: st.markdown('<div class="netflix-red">CONGOSTREAM <span class="live-dot"></span></div>', unsafe_allow_html=True)
+with c2: search = st.text_input("", placeholder="🔍 Rechercher film, série, animé...", label_visibility="collapsed")
+with c3: menu = st.selectbox("", ["Acc
