@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import date
+from datetime import date, datetime
 import random, os, json, tempfile
 import cloudinary
 import cloudinary.uploader
@@ -44,7 +44,8 @@ button[data-testid="stBaseButton-pills"]{background:rgba(255,255,255,0.15)!impor
 button[data-testid="stBaseButton-pills"][data-active="true"]{background:#E50914!important;border-color:#E50914!important;}
 .glass-desc{background:rgba(15,15,15,0.75);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.18);border-radius:16px;padding:20px;margin-top:-30px;position:relative;z-index:5;max-width:650px;}
 .film-card{max-width:900px;margin:35px auto;background:#111;border-radius:16px;overflow:hidden;border:1px solid #222;}
-.admin-card{background:#111;border:1px solid #333;border-radius:12px;padding:15px;margin:10px 0;}
+.admin-card{background:#111;border:1px solid #333;border-radius:12px;padding:15px;margin:12px 0;}
+.publi-date{color:#888;font-size:12px;margin-top:5px;font-style:italic;}
 header{visibility:hidden;}
 video{border-radius:12px;}
 </style>
@@ -141,7 +142,7 @@ elif menu=="Accueil":
 
 elif menu=="Espace Associé":
     st.title("🔐 Espace Associé")
-    if CLOUD_OK: st.success("✅ Cloudinary OK - Stockage permanent")
+    if CLOUD_OK: st.success("✅ Cloudinary OK")
     else: st.error("❌ Vérifie Secrets")
     code=st.text_input("Code d'accès", type="password", placeholder="RolVie2002")
     if code and code!="RolVie2002" and code!="": st.error("Mauvais code"); st.stop()
@@ -162,8 +163,20 @@ elif menu=="Espace Associé":
                             t_url=upload_cloud(trailer,"congo_trailers")
                             f_url=upload_cloud(film_c,"congo_films") if film_c else None
                             if t_url:
-                                st.session_state.films.append({"id":random.randint(1000,99999),"titre":titre,"genre":genre,"annee":annee,"desc":desc,"trailer_url":t_url,"film_url":f_url,"date":str(date.today())})
-                                save_films(); st.success("Publié!"); st.balloons()
+                                now = datetime.now()
+                                st.session_state.films.append({
+                                    "id":random.randint(1000,99999),
+                                    "titre":titre,
+                                    "genre":genre,
+                                    "annee":annee,
+                                    "desc":desc,
+                                    "trailer_url":t_url,
+                                    "film_url":f_url,
+                                    "date_pub": now.strftime("%d/%m/%Y"),
+                                    "heure_pub": now.strftime("%H:%M:%S"),
+                                    "timestamp": now.strftime("%d/%m/%Y à %H:%M:%S")
+                                })
+                                save_films(); st.success(f"Publié le {now.strftime('%d/%m/%Y à %H:%M')}!"); st.balloons()
                     else: st.warning("Titre + Bande annonce obligatoire")
 
         with tab2:
@@ -177,6 +190,9 @@ elif menu=="Espace Associé":
                         col_a,col_b,col_c = st.columns([3,1,1])
                         with col_a:
                             st.markdown(f"**{film['titre']}** - {film['genre']} - {film['annee']}")
+                            # DATE ET HEURE VISIBLE ICI SEULEMENT
+                            date_affiche = film.get('timestamp') or f"{film.get('date_pub','')} {film.get('heure_pub','')}" or film.get('date','Date inconnue')
+                            st.markdown(f'<div class="publi-date">📅 Publié le {date_affiche}</div>', unsafe_allow_html=True)
                             st.caption(f"ID: {film['id']}")
                         with col_b:
                             if st.button("✏️ Modifier", key=f"edit_{film['id']}"):
@@ -189,7 +205,6 @@ elif menu=="Espace Associé":
                                 st.rerun()
                         st.markdown('</div>', unsafe_allow_html=True)
 
-                        # FORMULAIRE MODIFICATION
                         if st.session_state.edit_id==film['id']:
                             st.markdown("#### ✏️ Modification")
                             with st.form(f"form_edit_{film['id']}"):
@@ -228,4 +243,4 @@ elif menu=="Espace Associé":
                                         st.rerun()
 else:
     st.markdown('<h1 style="color:#E50914;">S\'abonner</h1>', unsafe_allow_html=True)
-    st.info("MTN 066778924 - 3500F / 5000F")
+    st.info("MTN 066778924")
