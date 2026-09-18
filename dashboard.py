@@ -87,8 +87,6 @@ def save_films():
 def video_auto(url, height="550px"):
     st.markdown(f'<video autoplay loop playsinline controls style="width:100%;height:{height};object-fit:cover;background:#000;border-radius:12px;"><source src="{url}" type="video/mp4"></video>', unsafe_allow_html=True)
 
-def video_16_9(url):
-    st.markdown(f'<div style="width:100%;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;"><video autoplay loop playsinline controls style="width:100%;height:100%;object-fit:cover;"><source src="{url}" type="video/mp4"></video></div>', unsafe_allow_html=True)
 
 # NAVBAR - LOGO DANS ZONE BLANCHE
 st.markdown('<div class="glass-nav">', unsafe_allow_html=True)
