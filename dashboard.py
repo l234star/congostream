@@ -35,19 +35,21 @@ GENRES=["Tous","Action","Animation","Aventure","Biopic","Comédie","Documentaire
 st.markdown("""
 <style>
 .stApp{background:#000;color:white;}
-.glass-nav{position:fixed;top:10px;left:15px;z-index:99999;background:rgba(255,255,255,0.12);backdrop-filter:blur(15px);border:1px solid rgba(255,255,255,0.25);border-radius:14px;padding:8px 16px;display:flex;align-items:center;gap:12px;}
-.genre-container{position:fixed;top:60px;left:0;right:0;z-index:99998;background:transparent!important;padding:10px 15px;display:flex;gap:8px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;}
+.glass-nav{position:fixed;top:8px;left:15px;z-index:99999;background:rgba(255,255,255,0.12);backdrop-filter:blur(15px);border:1px solid rgba(255,255,255,0.25);border-radius:14px;padding:6px 14px;display:flex;align-items:center;gap:12px;}
+.genre-container{position:fixed;top:48px;left:0;right:0;z-index:99998;background:transparent!important;padding:6px 15px;display:flex;gap:8px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;}
 .genre-container::-webkit-scrollbar{display:none;}
 div[data-testid="stSegmentedControl"]{background:transparent!important;}
-div[data-testid="stSegmentedControl"] > div{background:transparent!important;gap:8px!important;}
-button[data-testid="stBaseButton-pills"]{background:rgba(255,255,255,0.15)!important;border:1px solid rgba(255,255,255,0.2)!important;border-radius:20px!important;color:white!important;backdrop-filter:blur(10px);}
+div[data-testid="stSegmentedControl"] > div{background:transparent!important;gap:8px!important;margin-top:0!important;}
+button[data-testid="stBaseButton-pills"]{background:rgba(255,255,255,0.15)!important;border:1px solid rgba(255,255,255,0.2)!important;border-radius:20px!important;color:white!important;backdrop-filter:blur(10px);padding:4px 12px!important;font-size:13px!important;}
 button[data-testid="stBaseButton-pills"][data-active="true"]{background:#E50914!important;border-color:#E50914!important;}
+div[data-testid="stMain"]{padding-top:0!important;}
+div.block-container{padding-top:85px!important;padding-bottom:0!important;}
 .glass-desc{background:rgba(15,15,15,0.75);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.18);border-radius:16px;padding:20px;margin-top:-30px;position:relative;z-index:5;max-width:650px;}
-.film-card{max-width:900px;margin:35px auto;background:#111;border-radius:16px;overflow:hidden;border:1px solid #222;}
+.film-card{max-width:900px;margin:20px auto;background:#111;border-radius:16px;overflow:hidden;border:1px solid #222;}
 .admin-card{background:#111;border:1px solid #333;border-radius:12px;padding:15px;margin:12px 0;}
 .publi-date{color:#888;font-size:12px;margin-top:5px;font-style:italic;}
 header{visibility:hidden;}
-video{border-radius:12px;}
+video{border-radius:12px;margin-top:0!important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -70,7 +72,7 @@ def save_films():
     with open(DATA_FILE,"w") as f: json.dump(st.session_state.films,f,indent=2,default=str)
 
 def video_auto(url, height="550px"):
-    html=f"""<video autoplay loop playsinline controls style="width:100%; height:{height}; object-fit:cover; background:#000;"><source src="{url}" type="video/mp4"></video>"""
+    html=f"""<video autoplay loop playsinline controls style="width:100%; height:{height}; object-fit:cover; background:#000; margin-top:0;"><source src="{url}" type="video/mp4"></video>"""
     st.markdown(html, unsafe_allow_html=True)
 
 def video_16_9(url):
@@ -98,8 +100,9 @@ if st.session_state.current_page=="Accueil":
         st.session_state.genre_filter=selected
     st.markdown('</div>', unsafe_allow_html=True)
 
+st.markdown("<div style='height:15px'></div>", unsafe_allow_html=True)
+
 menu=st.session_state.current_page
-st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
 
 if st.session_state.selected_film and menu=="Accueil":
     film=next((f for f in st.session_state.films if f["id"]==st.session_state.selected_film),None)
@@ -145,7 +148,7 @@ elif menu=="Accueil":
 
 elif menu=="Espace Associé":
     st.title("🔐 Espace Associé")
-    if CLOUD_OK: st.success("✅ Cloudinary OK")
+    if CLOUD_OK: st.success("✅ Cloudinary OK - Stockage permanent")
     else: st.error("❌ Vérifie Secrets")
     code=st.text_input("Code d'accès", type="password", placeholder="RolVie2002")
     if code and code!="RolVie2002" and code!="": st.error("Mauvais code"); st.stop()
@@ -184,9 +187,8 @@ elif menu=="Espace Associé":
                                 })
                                 save_films(); st.success(f"Publié le {now.strftime('%d/%m/%Y à %H:%M')}!"); st.balloons()
                     else: st.warning("Titre + Bande annonce obligatoire")
-
         with tab2:
-            st.markdown(f"### 📦 {len(st.session_state.films)} films / séries")
+            st.markdown(f"### 📦 {len(st.session_state.films)} films / séries en ligne")
             if not st.session_state.films:
                 st.info("Aucun contenu")
             else:
@@ -197,7 +199,7 @@ elif menu=="Espace Associé":
                         with col_img:
                             if film.get('image_url'): st.image(film['image_url'], width=80)
                         with col_a:
-                            st.markdown(f"**{film['titre']}** - {film['genre']}")
+                            st.markdown(f"**{film['titre']}** - {film['genre']} - {film['annee']}")
                             date_affiche = film.get('timestamp') or f"{film.get('date_pub','')} {film.get('heure_pub','')}" or film.get('date','Date inconnue')
                             st.markdown(f'<div class="publi-date">📅 Publié le {date_affiche}</div>', unsafe_allow_html=True)
                             st.caption(f"ID: {film['id']}")
@@ -209,7 +211,6 @@ elif menu=="Espace Associé":
                                 st.session_state.films=[f for f in st.session_state.films if f["id"]!=film["id"]]
                                 save_films(); st.rerun()
                         st.markdown('</div>', unsafe_allow_html=True)
-
                         if st.session_state.edit_id==film['id']:
                             st.markdown("#### ✏️ Modification")
                             with st.form(f"form_edit_{film['id']}"):
@@ -248,4 +249,4 @@ elif menu=="Espace Associé":
                                         st.session_state.edit_id=None; st.rerun()
 else:
     st.markdown('<h1 style="color:#E50914;">S\'abonner</h1>', unsafe_allow_html=True)
-    st.info("MTN 066778924")
+    st.info("MTN 066778924 - 3500F / 5000F")
