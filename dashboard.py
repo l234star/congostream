@@ -35,9 +35,7 @@ GENRES=["Tous","Action","Animation","Aventure","Biopic","Comédie","Documentaire
 st.markdown("""
 <style>
 .stApp{background:#000;color:white;}
-/* LOGO */
 .glass-nav{position:fixed;top:10px;left:15px;z-index:99999;background:rgba(255,255,255,0.12);backdrop-filter:blur(15px);border:1px solid rgba(255,255,255,0.25);border-radius:14px;padding:8px 16px;display:flex;align-items:center;gap:12px;}
-/* GENRES - TOTALEMENT TRANSPARENT - JUSTE SOUS LE LOGO */
 .genre-container{position:fixed;top:60px;left:0;right:0;z-index:99998;background:transparent!important;padding:10px 15px;display:flex;gap:8px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;}
 .genre-container::-webkit-scrollbar{display:none;}
 div[data-testid="stSegmentedControl"]{background:transparent!important;}
@@ -46,6 +44,7 @@ button[data-testid="stBaseButton-pills"]{background:rgba(255,255,255,0.15)!impor
 button[data-testid="stBaseButton-pills"][data-active="true"]{background:#E50914!important;border-color:#E50914!important;}
 .glass-desc{background:rgba(15,15,15,0.75);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.18);border-radius:16px;padding:20px;margin-top:-30px;position:relative;z-index:5;max-width:650px;}
 .film-card{max-width:900px;margin:35px auto;background:#111;border-radius:16px;overflow:hidden;border:1px solid #222;}
+.admin-card{background:#111;border:1px solid #333;border-radius:12px;padding:15px;margin:10px 0;}
 header{visibility:hidden;}
 video{border-radius:12px;}
 </style>
@@ -64,6 +63,7 @@ if "menu_open" not in st.session_state: st.session_state.menu_open=False
 if "current_page" not in st.session_state: st.session_state.current_page="Accueil"
 if "hero_index" not in st.session_state: st.session_state.hero_index=0
 if "genre_filter" not in st.session_state: st.session_state.genre_filter="Tous"
+if "edit_id" not in st.session_state: st.session_state.edit_id=None
 
 def save_films():
     with open(DATA_FILE,"w") as f: json.dump(st.session_state.films,f,indent=2,default=str)
@@ -90,10 +90,8 @@ if st.session_state.menu_open:
     if st.button("Fermer ✕"): st.session_state.menu_open=False; st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
-# GENRES - LIGNE UNIQUE TRANSPARENTE JUSTE APRES LOGO
 if st.session_state.current_page=="Accueil":
     st.markdown('<div class="genre-container">', unsafe_allow_html=True)
-    # Utilise les pills de Streamlit - une seule ligne, transparent
     selected = st.pills("", GENRES, default=st.session_state.genre_filter, selection_mode="single", label_visibility="collapsed")
     if selected:
         st.session_state.genre_filter=selected
@@ -143,24 +141,91 @@ elif menu=="Accueil":
 
 elif menu=="Espace Associé":
     st.title("🔐 Espace Associé")
-    code=st.text_input("Code", type="password", placeholder="RolVie2002")
+    if CLOUD_OK: st.success("✅ Cloudinary OK - Stockage permanent")
+    else: st.error("❌ Vérifie Secrets")
+    code=st.text_input("Code d'accès", type="password", placeholder="RolVie2002")
     if code and code!="RolVie2002" and code!="": st.error("Mauvais code"); st.stop()
     if code=="RolVie2002":
-        with st.form("pub", clear_on_submit=True):
-            titre=st.text_input("Titre *")
-            c1,c2=st.columns(2)
-            with c1: genre=st.selectbox("Genre", GENRES[1:])
-            with c2: annee=st.text_input("Année","2026")
-            trailer=st.file_uploader("Bande Annonce *", type=["mp4","mov","mkv"])
-            film_c=st.file_uploader("Film Complet", type=["mp4","mkv","mov"])
-            if st.form_submit_button("☁️ PUBLIER", use_container_width=True, type="primary"):
-                if titre and trailer and CLOUD_OK:
-                    with st.spinner("Upload..."):
-                        t_url=upload_cloud(trailer,"congo_trailers")
-                        f_url=upload_cloud(film_c,"congo_films") if film_c else None
-                        if t_url:
-                            st.session_state.films.append({"id":random.randint(1000,99999),"titre":titre,"genre":genre,"annee":annee,"trailer_url":t_url,"film_url":f_url,"date":str(date.today())})
-                            save_films(); st.success("Publié!"); st.balloons()
+        tab1, tab2 = st.tabs(["📤 Publier Nouveau", "🛠️ Gérer Contenus"])
+        with tab1:
+            with st.form("pub", clear_on_submit=True):
+                titre=st.text_input("Titre *")
+                c1,c2=st.columns(2)
+                with c1: genre=st.selectbox("Genre", GENRES[1:])
+                with c2: annee=st.text_input("Année","2026")
+                desc=st.text_area("Description")
+                trailer=st.file_uploader("Bande Annonce *", type=["mp4","mov","mkv"])
+                film_c=st.file_uploader("Film Complet (optionnel)", type=["mp4","mkv","mov"])
+                if st.form_submit_button("☁️ PUBLIER", use_container_width=True, type="primary"):
+                    if titre and trailer and CLOUD_OK:
+                        with st.spinner("Upload Cloudinary..."):
+                            t_url=upload_cloud(trailer,"congo_trailers")
+                            f_url=upload_cloud(film_c,"congo_films") if film_c else None
+                            if t_url:
+                                st.session_state.films.append({"id":random.randint(1000,99999),"titre":titre,"genre":genre,"annee":annee,"desc":desc,"trailer_url":t_url,"film_url":f_url,"date":str(date.today())})
+                                save_films(); st.success("Publié!"); st.balloons()
+                    else: st.warning("Titre + Bande annonce obligatoire")
+
+        with tab2:
+            st.markdown(f"### 📦 {len(st.session_state.films)} films / séries en ligne")
+            if not st.session_state.films:
+                st.info("Aucun contenu")
+            else:
+                for film in reversed(st.session_state.films):
+                    with st.container():
+                        st.markdown(f'<div class="admin-card">', unsafe_allow_html=True)
+                        col_a,col_b,col_c = st.columns([3,1,1])
+                        with col_a:
+                            st.markdown(f"**{film['titre']}** - {film['genre']} - {film['annee']}")
+                            st.caption(f"ID: {film['id']}")
+                        with col_b:
+                            if st.button("✏️ Modifier", key=f"edit_{film['id']}"):
+                                st.session_state.edit_id=film['id']
+                        with col_c:
+                            if st.button("🗑️ Supprimer", key=f"del_{film['id']}", type="primary"):
+                                st.session_state.films=[f for f in st.session_state.films if f["id"]!=film["id"]]
+                                save_films()
+                                st.success(f"{film['titre']} supprimé!")
+                                st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                        # FORMULAIRE MODIFICATION
+                        if st.session_state.edit_id==film['id']:
+                            st.markdown("#### ✏️ Modification")
+                            with st.form(f"form_edit_{film['id']}"):
+                                new_titre=st.text_input("Titre", value=film['titre'])
+                                c1,c2=st.columns(2)
+                                with c1:
+                                    idx=GENRES.index(film['genre']) if film['genre'] in GENRES else 1
+                                    new_genre=st.selectbox("Genre", GENRES[1:], index=idx-1 if idx>0 else 0)
+                                with c2:
+                                    new_annee=st.text_input("Année", value=film['annee'])
+                                new_desc=st.text_area("Description", value=film.get('desc',''))
+                                new_trailer=st.file_uploader("Nouvelle bande annonce (laisser vide pour garder)", type=["mp4","mov","mkv"], key=f"new_trail_{film['id']}")
+                                new_film=st.file_uploader("Nouveau film complet (optionnel)", type=["mp4","mkv"], key=f"new_film_{film['id']}")
+                                col_s,col_a=st.columns(2)
+                                with col_s:
+                                    if st.form_submit_button("💾 Sauvegarder", type="primary", use_container_width=True):
+                                        film['titre']=new_titre
+                                        film['genre']=new_genre
+                                        film['annee']=new_annee
+                                        film['desc']=new_desc
+                                        if new_trailer:
+                                            with st.spinner("Upload..."):
+                                                t_url=upload_cloud(new_trailer,"congo_trailers")
+                                                if t_url: film['trailer_url']=t_url
+                                        if new_film:
+                                            with st.spinner("Upload film..."):
+                                                f_url=upload_cloud(new_film,"congo_films")
+                                                if f_url: film['film_url']=f_url
+                                        save_films()
+                                        st.session_state.edit_id=None
+                                        st.success("Modifié!")
+                                        st.rerun()
+                                with col_a:
+                                    if st.form_submit_button("Annuler", use_container_width=True):
+                                        st.session_state.edit_id=None
+                                        st.rerun()
 else:
     st.markdown('<h1 style="color:#E50914;">S\'abonner</h1>', unsafe_allow_html=True)
-    st.info("MTN 066778924")
+    st.info("MTN 066778924 - 3500F / 5000F")
