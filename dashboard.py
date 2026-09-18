@@ -6,7 +6,8 @@ import cloudinary.uploader
 
 st.set_page_config(page_title="CONGOSTREAM", page_icon="🎬", layout="wide")
 
-# --- CLOUDINARY ---
+# --- CLOUDINARY - CORRIGÉ ---
+CLOUD_OK = False
 try:
     cloudinary.config(
         cloud_name = st.secrets["cloudinary"]["cloud_name"],
@@ -15,25 +16,28 @@ try:
         secure=True
     )
     CLOUD_OK = True
-except:
+except Exception as e:
     CLOUD_OK = False
 
 def upload_cloud(file_obj, folder):
     if not file_obj or not CLOUD_OK:
         return None
     try:
+        # IMPORTANT: on sauve sur disque pour éviter "closed file"
         suffix = os.path.splitext(file_obj.name)[1]
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(file_obj.getvalue())
             tmp_path = tmp.name
-        res = cloudinary.uploader.upload(tmp_path, resource_type="auto", folder=folder)
+        res = cloudinary.uploader.upload(tmp_path, resource_type="auto", folder=folder, chunk_size=6000000)
         os.remove(tmp_path)
         return res.get("secure_url")
     except Exception as e:
         st.error(f"Erreur Cloudinary: {e}")
+        if 'tmp_path' in locals() and os.path.exists(tmp_path):
+            os.remove(tmp_path)
         return None
 
-GENRES = ["Action","Animation","Aventure","Biopic","Comédie","Documentaire","Drame","Horreur","Erotique","Espionnage","Fantastique","Guerre","Policier","Romance","Science-fiction","Thriller","Western"]
+GENRES = ["Action","Animation","Aventure","Biopic","Comédie","Documentaire","Drame","Horreur","Erotique","Espionnage","Fantastique","Guerre","Policier","Romance","Sci-Fi","Thriller"]
 
 st.markdown("""
 <style>
@@ -58,7 +62,7 @@ if "menu_open" not in st.session_state: st.session_state.menu_open=False
 def save_films():
     with open(DATA_FILE,"w") as f: json.dump(st.session_state.films,f,indent=2,default=str)
 
-# MENU GLASS
+# MENU
 st.markdown('<div class="glass-nav">', unsafe_allow_html=True)
 c1,c2=st.columns([1,4])
 with c1:
@@ -72,25 +76,33 @@ else:
     menu=st.session_state.get("last_menu","Accueil")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# DETAIL FILM
+# PAGE DETAIL - LECTURE AUTO TRAILER
 if st.session_state.selected_film and menu=="Accueil":
     film=next((f for f in st.session_state.films if f["id"]==st.session_state.selected_film),None)
     if film:
         if st.button("⬅️ Retour"): st.session_state.selected_film=None; st.session_state.playing_film=False; st.rerun()
         if st.session_state.playing_film:
-            if film.get("film_url"): st.video(film["film_url"],autoplay=True)
-            else: st.warning("Film complet non uploadé")
+            if film.get("film_url"):
+                st.video(film["film_url"], autoplay=True)
+            else:
+                st.warning("Film complet non disponible - Bande annonce seulement")
+                if film.get("trailer_url"): st.video(film["trailer_url"], autoplay=True, loop=True)
         else:
-            if film.get("trailer_url"): st.video(film["trailer_url"],autoplay=True)
-            if st.button("▶️ LECTURE",use_container_width=True): st.session_state.playing_film=True; st.rerun()
+            # AUTO PLAY BANDE ANNONCE
+            if film.get("trailer_url"):
+                st.video(film["trailer_url"], autoplay=True, loop=True, muted=True)
+            if st.button("▶️ LECTURE",use_container_width=True):
+                st.session_state.playing_film=True; st.rerun()
             st.markdown(f'<div class="glass-desc"><h2>{film["titre"]}</h2><p>{film["genre"]} • {film["annee"]}</p><p>{film.get("desc","")}</p></div>', unsafe_allow_html=True)
 
 elif menu=="Accueil":
     if st.session_state.films:
         hero=st.session_state.films[0]
-        if hero.get("trailer_url"): st.video(hero["trailer_url"],autoplay=True,muted=True,loop=True)
+        if hero.get("trailer_url"):
+            st.video(hero["trailer_url"], autoplay=True, muted=True, loop=True)
         st.markdown(f'<div class="glass-desc"><h1 style="font-size:38px;font-weight:900;margin:0;">{hero["titre"]}</h1><p>{hero["genre"]} • {hero["annee"]}</p></div>', unsafe_allow_html=True)
-        if st.button("▶️ LECTURE HERO"): st.session_state.selected_film=hero["id"]; st.session_state.playing_film=True; st.rerun()
+        if st.button("▶️ LECTURE HERO"):
+            st.session_state.selected_film=hero["id"]; st.session_state.playing_film=True; st.rerun()
     st.markdown("### 🎬 Films")
     cols=st.columns(4)
     for i,film in enumerate(st.session_state.films):
@@ -102,28 +114,37 @@ elif menu=="Accueil":
 
 elif menu=="Espace Associé":
     st.title("Espace Associé - Cloudinary")
-    if not CLOUD_OK: st.error("⚠️ Ajoute tes clés Cloudinary dans Secrets!")
+    if CLOUD_OK: st.success("✅ Cloudinary connecté!")
+    else: st.error("⚠️ Cloudinary non connecté - Vérifie tes Secrets!")
+
     code=st.text_input("Code",type="password",placeholder="RolVie2002")
     if code!="" and code!="RolVie2002": st.error("Mauvais code"); st.stop()
     if code=="RolVie2002":
+        st.info("💡 Tu peux publier avec BANDE ANNONCE SEULEMENT. Le film complet est optionnel.")
         with st.form("pub",clear_on_submit=True):
             titre=st.text_input("Titre *")
             genre=st.selectbox("Genre",GENRES)
             annee=st.text_input("Année","2026")
             desc=st.text_area("Description")
-            trailer=st.file_uploader("Bande Annonce Forte *",type=["mp4","mov","mkv"])
-            film_complet=st.file_uploader("Film Complet",type=["mp4","mkv","mov"])
-            affiche=st.file_uploader("Affiche",type=["jpg","png","jpeg","webp"])
-            if st.form_submit_button("☁️ PUBLIER (reste à vie)",use_container_width=True):
-                if titre and trailer and CLOUD_OK:
-                    with st.spinner("Upload Cloudinary en cours... 1-2 min"):
+            trailer=st.file_uploader("Bande Annonce Forte * (obligatoire)",type=["mp4","mov","mkv"])
+            film_complet=st.file_uploader("Film Complet (optionnel - tu peux laisser vide)",type=["mp4","mkv","mov"])
+            affiche=st.file_uploader("Affiche (optionnel)",type=["jpg","png","jpeg","webp"])
+            publier=st.form_submit_button("☁️ PUBLIER",use_container_width=True)
+            if publier:
+                if not titre: st.warning("Titre obligatoire")
+                elif not trailer: st.warning("Bande annonce obligatoire")
+                elif not CLOUD_OK: st.error("Cloudinary non configuré - va dans Secrets!")
+                else:
+                    with st.spinner("Upload Cloudinary en cours... attends 1-2 min"):
                         trailer_url=upload_cloud(trailer,"congo_trailers")
                         film_url=upload_cloud(film_complet,"congo_films") if film_complet else None
                         image_url=upload_cloud(affiche,"congo_images") if affiche else None
-                        new_f={"id":random.randint(100,99999),"titre":titre,"genre":genre,"annee":annee,"desc":desc,"trailer_url":trailer_url,"film_url":film_url,"image_url":image_url,"date":str(date.today())}
-                        st.session_state.films.append(new_f); save_films()
-                        st.success(f"✅ {titre} sur Cloudinary! Il ne va plus se supprimer!"); st.balloons()
-                else: st.warning("Titre + Trailer + Cloudinary config obligatoire")
+                        if trailer_url:
+                            new_f={"id":random.randint(100,99999),"titre":titre,"genre":genre,"annee":annee,"desc":desc,"trailer_url":trailer_url,"film_url":film_url,"image_url":image_url,"date":str(date.today())}
+                            st.session_state.films.append(new_f); save_films()
+                            st.success(f"✅ {titre} publié! Même avec bande annonce seule!"); st.balloons()
+                        else:
+                            st.error("Upload échoué - vérifie ton API Secret")
         for f in st.session_state.films[:]:
             if st.button(f"🗑️ Supprimer {f['titre']}",key=f"d_{f['id']}"):
                 st.session_state.films=[x for x in st.session_state.films if x["id"]!=f["id"]]; save_films(); st.rerun()
