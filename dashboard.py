@@ -111,15 +111,17 @@ if st.session_state.selected_film and menu=="Accueil":
                 if film.get("trailer_url"): video_auto(film["trailer_url"], "600px")
         else:
             if film.get("trailer_url"): video_auto(film["trailer_url"], "600px")
+            elif film.get("image_url"): st.image(film["image_url"], use_container_width=True)
             if st.button("▶️ LECTURE", use_container_width=True, type="primary"):
                 st.session_state.playing_film=True; st.rerun()
-            st.markdown(f'<div class="glass-desc"><h2>{film["titre"]}</h2><p>{film["genre"]} • {film["annee"]}</p></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="glass-desc"><h2>{film["titre"]}</h2><p>{film["genre"]} • {film["annee"]}</p><p>{film.get("desc","")}</p></div>', unsafe_allow_html=True)
 
 elif menu=="Accueil":
     filtered=[f for f in st.session_state.films if st.session_state.genre_filter=="Tous" or f["genre"]==st.session_state.genre_filter]
     if filtered:
         hero = filtered[st.session_state.hero_index % len(filtered)]
         if hero.get("trailer_url"): video_auto(hero["trailer_url"], "550px")
+        elif hero.get("image_url"): st.image(hero["image_url"], use_container_width=True)
         col1,col2=st.columns([4,1])
         with col2:
             if st.button("🔐 Espace Associé", key="assoc_top_right"):
@@ -135,6 +137,7 @@ elif menu=="Accueil":
     for film in filtered:
         st.markdown('<div class="film-card">', unsafe_allow_html=True)
         if film.get("trailer_url"): video_16_9(film["trailer_url"])
+        elif film.get("image_url"): st.image(film["image_url"], use_container_width=True)
         st.markdown(f'<div style="padding:15px;"><h3>{film["titre"]}</h3>', unsafe_allow_html=True)
         if st.button(f"Voir {film['titre']}", key=f"voir_{film['id']}", use_container_width=True):
             st.session_state.selected_film=film["id"]; st.rerun()
@@ -155,13 +158,15 @@ elif menu=="Espace Associé":
                 with c1: genre=st.selectbox("Genre", GENRES[1:])
                 with c2: annee=st.text_input("Année","2026")
                 desc=st.text_area("Description")
-                trailer=st.file_uploader("Bande Annonce *", type=["mp4","mov","mkv"])
-                film_c=st.file_uploader("Film Complet (optionnel)", type=["mp4","mkv","mov"])
+                trailer=st.file_uploader("Bande Annonce * (vidéo)", type=["mp4","mov","mkv"])
+                film_c=st.file_uploader("Film Complet (vidéo optionnel)", type=["mp4","mkv","mov"])
+                affiche=st.file_uploader("🖼️ Pochette / Affiche du film (image)", type=["jpg","jpeg","png","webp"])
                 if st.form_submit_button("☁️ PUBLIER", use_container_width=True, type="primary"):
                     if titre and trailer and CLOUD_OK:
                         with st.spinner("Upload Cloudinary..."):
                             t_url=upload_cloud(trailer,"congo_trailers")
                             f_url=upload_cloud(film_c,"congo_films") if film_c else None
+                            i_url=upload_cloud(affiche,"congo_images") if affiche else None
                             if t_url:
                                 now = datetime.now()
                                 st.session_state.films.append({
@@ -172,6 +177,7 @@ elif menu=="Espace Associé":
                                     "desc":desc,
                                     "trailer_url":t_url,
                                     "film_url":f_url,
+                                    "image_url":i_url,
                                     "date_pub": now.strftime("%d/%m/%Y"),
                                     "heure_pub": now.strftime("%H:%M:%S"),
                                     "timestamp": now.strftime("%d/%m/%Y à %H:%M:%S")
@@ -180,17 +186,18 @@ elif menu=="Espace Associé":
                     else: st.warning("Titre + Bande annonce obligatoire")
 
         with tab2:
-            st.markdown(f"### 📦 {len(st.session_state.films)} films / séries en ligne")
+            st.markdown(f"### 📦 {len(st.session_state.films)} films / séries")
             if not st.session_state.films:
                 st.info("Aucun contenu")
             else:
                 for film in reversed(st.session_state.films):
                     with st.container():
                         st.markdown(f'<div class="admin-card">', unsafe_allow_html=True)
-                        col_a,col_b,col_c = st.columns([3,1,1])
+                        col_img, col_a, col_b, col_c = st.columns([1,2,1,1])
+                        with col_img:
+                            if film.get('image_url'): st.image(film['image_url'], width=80)
                         with col_a:
-                            st.markdown(f"**{film['titre']}** - {film['genre']} - {film['annee']}")
-                            # DATE ET HEURE VISIBLE ICI SEULEMENT
+                            st.markdown(f"**{film['titre']}** - {film['genre']}")
                             date_affiche = film.get('timestamp') or f"{film.get('date_pub','')} {film.get('heure_pub','')}" or film.get('date','Date inconnue')
                             st.markdown(f'<div class="publi-date">📅 Publié le {date_affiche}</div>', unsafe_allow_html=True)
                             st.caption(f"ID: {film['id']}")
@@ -200,9 +207,7 @@ elif menu=="Espace Associé":
                         with col_c:
                             if st.button("🗑️ Supprimer", key=f"del_{film['id']}", type="primary"):
                                 st.session_state.films=[f for f in st.session_state.films if f["id"]!=film["id"]]
-                                save_films()
-                                st.success(f"{film['titre']} supprimé!")
-                                st.rerun()
+                                save_films(); st.rerun()
                         st.markdown('</div>', unsafe_allow_html=True)
 
                         if st.session_state.edit_id==film['id']:
@@ -216,8 +221,9 @@ elif menu=="Espace Associé":
                                 with c2:
                                     new_annee=st.text_input("Année", value=film['annee'])
                                 new_desc=st.text_area("Description", value=film.get('desc',''))
-                                new_trailer=st.file_uploader("Nouvelle bande annonce (laisser vide pour garder)", type=["mp4","mov","mkv"], key=f"new_trail_{film['id']}")
-                                new_film=st.file_uploader("Nouveau film complet (optionnel)", type=["mp4","mkv"], key=f"new_film_{film['id']}")
+                                new_trailer=st.file_uploader("Nouvelle bande annonce (vide = garder)", type=["mp4","mov","mkv"], key=f"new_trail_{film['id']}")
+                                new_film=st.file_uploader("Nouveau film complet", type=["mp4","mkv"], key=f"new_film_{film['id']}")
+                                new_affiche=st.file_uploader("🖼️ Nouvelle pochette / affiche (vide = garder)", type=["jpg","png","webp"], key=f"new_img_{film['id']}")
                                 col_s,col_a=st.columns(2)
                                 with col_s:
                                     if st.form_submit_button("💾 Sauvegarder", type="primary", use_container_width=True):
@@ -226,21 +232,20 @@ elif menu=="Espace Associé":
                                         film['annee']=new_annee
                                         film['desc']=new_desc
                                         if new_trailer:
-                                            with st.spinner("Upload..."):
-                                                t_url=upload_cloud(new_trailer,"congo_trailers")
-                                                if t_url: film['trailer_url']=t_url
+                                            t_url=upload_cloud(new_trailer,"congo_trailers")
+                                            if t_url: film['trailer_url']=t_url
                                         if new_film:
-                                            with st.spinner("Upload film..."):
-                                                f_url=upload_cloud(new_film,"congo_films")
-                                                if f_url: film['film_url']=f_url
+                                            f_url=upload_cloud(new_film,"congo_films")
+                                            if f_url: film['film_url']=f_url
+                                        if new_affiche:
+                                            i_url=upload_cloud(new_affiche,"congo_images")
+                                            if i_url: film['image_url']=i_url
                                         save_films()
                                         st.session_state.edit_id=None
-                                        st.success("Modifié!")
-                                        st.rerun()
+                                        st.success("Modifié!"); st.rerun()
                                 with col_a:
                                     if st.form_submit_button("Annuler", use_container_width=True):
-                                        st.session_state.edit_id=None
-                                        st.rerun()
+                                        st.session_state.edit_id=None; st.rerun()
 else:
     st.markdown('<h1 style="color:#E50914;">S\'abonner</h1>', unsafe_allow_html=True)
     st.info("MTN 066778924")
