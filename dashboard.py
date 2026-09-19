@@ -99,7 +99,9 @@ if menu=="Accueil":
     if filtered:
         try:
             from streamlit_autorefresh import st_autorefresh
-            count = st_autorefresh(interval=8000, key="netflix_auto")
+            duree_hero = hero.get("duree", 8)
+            interval_ms = int(duree_hero * 1000) + 1500
+            count = st_autorefresh(interval=interval_ms, key="netflix_auto")
             if count!= st.session_state.auto_count:
                 st.session_state.hero_index = (st.session_state.hero_index + 1) % len(filtered)
                 st.session_state.auto_count = count
