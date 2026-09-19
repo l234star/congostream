@@ -160,13 +160,19 @@ elif menu == "Accueil":
         st.markdown(f'<div class="glass-desc"><h1 style="font-size:32px;font-weight:900;margin:0;">{hero["titre"]}</h1><p>{hero["genre"]} - {hero["annee"]}</p></div>', unsafe_allow_html=True)
 
     st.markdown("<h2 style='text-align:center;'>Bandes annonces - 16:9</h2>", unsafe_allow_html=True)
-    for film in filtered:
-        st.markdown('<div class="film-card">', unsafe_allow_html=True)
-        if film.get("trailer_url"):
-            video_16_9(film["trailer_url"])
-        elif film.get("image_url"):
-            st.image(film["image_url"], use_container_width=True)
-        st.markdown(f'<div style="padding:15px;"><h3>{film["titre"]}</h3>', unsafe_allow_html=True)
+    # --- FIX DEFINITIF : 1 seul player 16:9, 0 bande noire, 0 erreur ---
+st.markdown("""
+<style>
+  [data-testid="stVideo"]{background:transparent!important}
+  video{object-fit:cover!important; width:100%!important; border-radius:12px;}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div style="width:100%; aspect-ratio:16/9; overflow:hidden; border-radius:12px; background:black;">
+  <iframe src="{film['trailer_url']}" style="width:100%; height:100%; border:0;" allowfullscreen></iframe>
+</div>
+""", unsafe_allow_html=True)
         if st.button(f"Voir {film['titre']}", key=f"voir_{film['id']}", use_container_width=True):
             st.session_state.selected_film=film["id"]
             st.rerun()
