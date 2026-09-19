@@ -166,7 +166,7 @@ if st.form_submit_button("PUBLIER",type="primary"):
             st.warning("Ajoute Titre + Trailer!")
             st.warning("Ajoute au moins Titre + Trailer Boss!")
     
-    with t2:
+with t2:
         for film in reversed(st.session_state.films):
             st.write(f"{film['titre']} - {film.get('timestamp','')}")
             if film.get("image_url"): st.image(film["image_url"],width=80)
