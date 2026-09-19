@@ -92,7 +92,7 @@ if st.session_state.menu_open:
     if st.button("Fermer"): st.session_state.menu_open=False; st.rerun()
 
 menu=st.session_state.current_page
-menu=="Accueil":
+if menu=="Accueil":
     filtered=[f for f in st.session_state.films if st.session_state.genre_filter=="Tous" or f["genre"]==st.session_state.genre_filter]
     if filtered:
         hero=filtered[st.session_state.hero_index % len(filtered)]
