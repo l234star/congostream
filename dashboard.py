@@ -1,166 +1,154 @@
 import streamlit as st
+import random, json, os
 from datetime import datetime
-import random, os, json, tempfile
-import cloudinary
-import cloudinary.uploader
 
-st.set_page_config(page_title="CONGOSTREAM", page_icon="🎬", layout="wide")
+FILMS_FILE = "films.json"
+UPLOAD_DIR = "uploads"
 
-CLOUD_OK=False
-try:
-    cloudinary.config(
-        cloud_name=st.secrets["cloudinary"]["cloud_name"],
-        api_key=st.secrets["cloudinary"]["api_key"],
-        api_secret=st.secrets["cloudinary"]["api_secret"],
-        secure=True
-    )
-    CLOUD_OK=True
-except: CLOUD_OK=False
+# Crée les dossiers si besoin
+os.makedirs(f"{UPLOAD_DIR}/trailers", exist_ok=True)
+os.makedirs(f"{UPLOAD_DIR}/films", exist_ok=True)
+os.makedirs(f"{UPLOAD_DIR}/images", exist_ok=True)
 
-def upload_cloud(file_obj, folder):
-    if not file_obj or not CLOUD_OK: return None
-    try:
-        suffix=os.path.splitext(file_obj.name)[1]
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(file_obj.getvalue())
-            tmp_path=tmp.name
-        res=cloudinary.uploader.upload(tmp_path, resource_type="auto", folder=folder, chunk_size=6000000)
-        os.remove(tmp_path)
-        return res.get("secure_url")
-    except: return None
-
-GENRES=["Tous","Action","Animation","Aventure","Biopic","Comedie","Documentaire","Drame","Horreur","Erotique","Espionnage","Fantastique","Guerre","Policier","Romance","Sci-Fi","Thriller"]
-
-st.markdown("""
-<style>
-header{visibility:hidden!important;}
-.stApp{background:#000!important;}
-.block-container{padding-top:100px!important;}
-
-/* HEADER NETFLIX - LOGO EN HAUT A GAUCHE DANS ZONE BLANCHE */
-.netflix-header{
-    position:fixed!important;
-    top:0!important;
-    left:0!important;
-    right:0!important;
-    height:52px!important;
-    z-index:9999999!important;
-    background:linear-gradient(to bottom, rgba(0,0,0,0.95), rgba(0,0,0,0.7))!important;
-    display:flex!important;
-    align-items:center!important;
-    justify-content:space-between!important;
-    padding:0 20px!important;
-    border-bottom:1px solid rgba(255,255,255,0.1)!important;
-}
-.netflix-logo{
-    color:#E50914!important;
-    font-weight:900!important;
-    font-size:26px!important;
-    letter-spacing:2px!important;
-    font-family:Arial Black!important;
-}
-.genre-bar{
-    position:fixed!important;
-    top:52px!important;
-    left:0!important;
-    right:0!important;
-    z-index:9999998!important;
-    background:#000!important;
-    padding:8px 15px!important;
-    display:flex!important;
-    gap:8px!important;
-    overflow-x:auto!important;
-    white-space:nowrap!important;
-    border-bottom:1px solid #222!important;
-}
-div[data-testid="stSegmentedControl"]{background:transparent!important;}
-button[data-testid="stBaseButton-pills"]{background:rgba(255,255,255,0.15)!important;border:1px solid rgba(255,255,255,0.2)!important;border-radius:20px!important;color:white!important;}
-button[data-testid="stBaseButton-pills"][data-active="true"]{background:#E50914!important;}
-</style>
-""", unsafe_allow_html=True)
-
-# HEADER NETFLIX
-st.markdown('<div class="netflix-header"><div class="netflix-logo">CONGOSTREAM</div><div style="color:white;">☰</div></div>', unsafe_allow_html=True)
-
-DATA_FILE="congo_films_cloud.json"
-if "films" not in st.session_state:
-    if os.path.exists(DATA_FILE):
+# === GESTION DES FILMS ===
+def load_films():
+    if os.path.exists(FILMS_FILE):
         try:
-            with open(DATA_FILE,"r") as f: st.session_state.films=json.load(f)
-        except: st.session_state.films=[]
-    else: st.session_state.films=[]
-for k in ["selected_film","playing_film","menu_open","current_page","hero_index","genre_filter","edit_id"]:
-    if k not in st.session_state:
-        st.session_state[k] = None if k in ["selected_film","edit_id"] else False if k in ["playing_film","menu_open"] else "Accueil" if k=="current_page" else 0 if k=="hero_index" else "Tous"
+            with open(FILMS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return []
+    return []
 
 def save_films():
-    with open(DATA_FILE,"w") as f: json.dump(st.session_state.films,f,indent=2,default=str)
+    with open(FILMS_FILE, "w", encoding="utf-8") as f:
+        json.dump(st.session_state.films, f, ensure_ascii=False, indent=2)
 
-if st.session_state.current_page=="Accueil":
-    st.markdown('<div class="genre-bar">', unsafe_allow_html=True)
-    sel=st.pills("",GENRES,default=st.session_state.genre_filter,selection_mode="single",label_visibility="collapsed")
-    if sel: st.session_state.genre_filter=sel
-    st.markdown('</div>', unsafe_allow_html=True)
+# === UPLOAD CLOUD + LOCAL ===
+def upload_cloud(file_obj, folder):
+    if not file_obj:
+        return None, 0
+    # 1. Essaye Cloudinary si configuré
+    try:
+        if "CLOUDINARY_URL" in st.secrets or "cloudinary" in st.secrets:
+            import cloudinary.uploader
+            res = cloudinary.uploader.upload(file_obj, folder=f"congo_{folder}", resource_type="auto")
+            return res.get("secure_url"), res.get("duration", 0)
+    except:
+        pass
+    
+    # 2. Fallback local (marche toujours)
+    try:
+        file_path = os.path.join(UPLOAD_DIR, folder, file_obj.name)
+        with open(file_path, "wb") as out:
+            out.write(file_obj.getbuffer())
+        return file_path, 0
+    except Exception as e:
+        st.error(f"Erreur upload: {e}")
+        return None, 0
 
-if st.button("☰ Menu Navigation"):
-    st.session_state.menu_open=not st.session_state.menu_open
-if st.session_state.menu_open:
-    choix=st.radio("Aller vers", ["Accueil","Espace Associe","S'abonner"], label_visibility="collapsed")
-    st.session_state.current_page=choix
-    if st.button("Fermer"):
-        st.session_state.menu_open=False
-        st.rerun()
+# On tente d'importer l'ancien storage si il existe, sinon on utilise nos fonctions locales
+try:
+    from src.congostream.storage import upload_cloud as external_upload, save_films as external_save
+    upload_cloud = external_upload
+    save_films_original = external_save
+    def save_films():
+        try:
+            external_save()
+        except:
+            with open(FILMS_FILE, "w", encoding="utf-8") as f:
+                json.dump(st.session_state.films, f, ensure_ascii=False, indent=2)
+except:
+    try:
+        from congostream.storage import upload_cloud as external_upload, save_films as external_save
+        upload_cloud = external_upload
+        def save_films():
+            try:
+                external_save()
+            except:
+                with open(FILMS_FILE, "w", encoding="utf-8") as f:
+                    json.dump(st.session_state.films, f, ensure_ascii=False, indent=2)
+    except:
+        try:
+            from storage import upload_cloud as external_upload, save_films as external_save
+            upload_cloud = external_upload
+            def save_films():
+                try:
+                    external_save()
+                except:
+                    with open(FILMS_FILE, "w", encoding="utf-8") as f:
+                        json.dump(st.session_state.films, f, ensure_ascii=False, indent=2)
+        except:
+            pass # On garde nos fonctions locales
 
-menu=st.session_state.current_page
+if "films" not in st.session_state:
+    st.session_state.films = load_films()
 
-if menu=="Accueil":
-    filtered=[f for f in st.session_state.films if st.session_state.genre_filter=="Tous" or f["genre"]==st.session_state.genre_filter]
-    if filtered:
-        hero=filtered[st.session_state.hero_index % len(filtered)]
-        if hero.get("trailer_url"): st.video(hero["trailer_url"])
-        elif hero.get("image_url"): st.image(hero["image_url"], use_container_width=True)
-        if st.button("▶ LECTURE", type="primary", use_container_width=True):
-            st.session_state.selected_film=hero["id"]; st.session_state.playing_film=True; st.rerun()
-        if st.button("⏭ Film suivant"): st.session_state.hero_index+=1; st.rerun()
-        st.markdown(f"### {hero['titre']}")
+# === INTERFACE ===
+st.title("Dashboard CongoStream")
+password = st.text_input("Mot de passe Admin", type="password")
 
-    for film in filtered:
-        st.divider()
-        if film.get("trailer_url"): st.video(film["trailer_url"])
-        st.write(f"**{film['titre']}** - {film['genre']} - {film['annee']}")
-        if st.button(f"Voir", key=f"v_{film['id']}"):
-            st.session_state.selected_film=film["id"]; st.rerun()
+if password == "congo2024" or password == "1234":
+    t1, t2 = st.tabs(["Publier Film", "Gérer Films"])
+    
+    with t1:
+        st.subheader("Publier un nouveau film")
+        with st.form("form_film", clear_on_submit=True):
+            titre = st.text_input("Titre du film *")
+            genre = st.selectbox("Genre", ["Action", "Comédie", "Drame", "Documentaire", "Nollywood", "Autre"])
+            annee = st.number_input("Année", 1900, 2030, 2024)
+            desc = st.text_area("Description")
+            trailer = st.file_uploader("Trailer * (obligatoire)", type=["mp4", "mov", "mkv"])
+            film_c = st.file_uploader("Film complet (optionnel)", type=["mp4", "mov", "mkv"])
+            affiche = st.file_uploader("Affiche (image)", type=["jpg", "png", "jpeg"])
+            
+            if st.form_submit_button("PUBLIER", type="primary"):
+                if titre and trailer:
+                    with st.spinner("Upload en cours Boss..."):
+                        t_url, t_duree = upload_cloud(trailer, "trailers")
+                        f_url, _ = upload_cloud(film_c, "films") if film_c else (None, 0)
+                        i_url, _ = upload_cloud(affiche, "images") if affiche else (None, 0)
+                    if t_url:
+                        now = datetime.now()
+                        st.session_state.films.append({
+                            "id": random.randint(1000, 99999),
+                            "titre": titre,
+                            "duree": t_duree,
+                            "genre": genre,
+                            "annee": annee,
+                            "desc": desc,
+                            "trailer_url": t_url,
+                            "film_url": f_url,
+                            "image_url": i_url,
+                            "timestamp": now.strftime("%d/%m/%Y a %H:%M:%S")
+                        })
+                        save_films()
+                        st.balloons()
+                        st.success("Publié! Le film apparaît maintenant!")
+                        st.rerun()
+                else:
+                    st.warning("Ajoute au moins Titre + Trailer Boss!")
 
-elif menu=="Espace Associe":
-    st.title("Espace Associe")
-    code=st.text_input("Code", type="password")
-    if code=="RolVie2002":
-        t1,t2=st.tabs(["Publier","Gerer"])
-        with t1:
-            with st.form("pub", clear_on_submit=True):
-                titre=st.text_input("Titre *")
-                genre=st.selectbox("Genre", GENRES[1:])
-                annee=st.text_input("Annee","2026")
-                desc=st.text_area("Description")
-                trailer=st.file_uploader("Bande Annonce *", type=["mp4","mov","mkv"])
-                film_c=st.file_uploader("Film Complet", type=["mp4","mkv"])
-                affiche=st.file_uploader("Pochette / Affiche", type=["jpg","png","webp"])
-                if st.form_submit_button("PUBLIER", type="primary"):
-                    if titre and trailer:
-                        t_url=upload_cloud(trailer,"congo_trailers")
-                        f_url=upload_cloud(film_c,"congo_films") if film_c else None
-                        i_url=upload_cloud(affiche,"congo_images") if affiche else None
-                        if t_url:
-                            now=datetime.now()
-                            st.session_state.films.append({"id":random.randint(1000,99999),"titre":titre,"genre":genre,"annee":annee,"desc":desc,"trailer_url":t_url,"film_url":f_url,"image_url":i_url,"timestamp":now.strftime("%d/%m/%Y à %H:%M:%S")})
-                            save_films(); st.success("Publie!"); st.balloons()
-        with t2:
-            for film in reversed(st.session_state.films):
-                st.write(f"**{film['titre']}** | {film.get('timestamp','')} | {film['genre']}")
-                if film.get("image_url"): st.image(film["image_url"], width=90)
-                if st.button("Supprimer", key=f"d_{film['id']}"):
-                    st.session_state.films=[f for f in st.session_state.films if f["id"]!=film["id"]]; save_films(); st.rerun()
+    with t2:
+        st.subheader(f"{len(st.session_state.films)} Films publiés")
+        for film in reversed(st.session_state.films):
+            c1, c2 = st.columns([1, 3])
+            with c1:
+                if film.get("image_url"):
+                    try:
+                        st.image(film["image_url"], width=80)
+                    except:
+                        pass
+            with c2:
+                st.write(f"**{film['titre']}** - {film.get('timestamp','')}")
+                if st.button("Supprimer", key=f"del_{film['id']}"):
+                    st.session_state.films = [x for x in st.session_state.films if x["id"] != film["id"]]
+                    save_films()
+                    st.rerun()
+            st.divider()
 
 else:
+    if password:
+        st.error("Mauvais mot de passe")
     st.title("S'abonner")
-    st.info("MTN 066778924")
+    st.info("MTN 066778924 - 2000 FCFA / mois")
