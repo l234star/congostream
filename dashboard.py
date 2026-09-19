@@ -173,7 +173,7 @@ st.markdown(f"""
   <iframe src="{film['trailer_url']}" style="width:100%; height:100%; border:0;" allowfullscreen></iframe>
 </div>
 """, unsafe_allow_html=True)
-        if st.button(f"Voir {film['titre']}", key=f"voir_{film['id']}", use_container_width=True):
+    if st.button(f"Voir {film['titre']}", key=f"voir_{film['id']}", use_container_width=True):
             st.session_state.selected_film=film["id"]
             st.rerun()
         st.markdown('</div></div>', unsafe_allow_html=True)
