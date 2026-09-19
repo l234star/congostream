@@ -152,7 +152,7 @@ elif menu=="Espace Associe":
                 affiche=st.file_uploader("Pochette",type=["jpg","png","webp"])
                 if st.form_submit_button("PUBLIER",type="primary"):
                     if titre and trailer:
-                        t_url t_duree = upload_cloud(trailer,"congo_trailers")
+                        t_url, t_duree = upload_cloud(trailer,"congo_trailers")
                         f_url, _ = upload_cloud(film_c,"congo_films") if film_c else (None, 0)
                         i_url, _ = upload_cloud(affiche,"congo_images") if affiche else (None, 0)
                         if t_url:
