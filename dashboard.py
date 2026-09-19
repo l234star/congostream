@@ -92,18 +92,39 @@ if st.session_state.menu_open:
     if st.button("Fermer"): st.session_state.menu_open=False; st.rerun()
 
 menu=st.session_state.current_page
-if menu=="Accueil":
+menu=="Accueil":
     filtered=[f for f in st.session_state.films if st.session_state.genre_filter=="Tous" or f["genre"]==st.session_state.genre_filter]
     if filtered:
         hero=filtered[st.session_state.hero_index % len(filtered)]
-        if hero.get("trailer_url"): st.video(hero["trailer_url"])
-        if st.button("LECTURE",type="primary",use_container_width=True): st.session_state.selected_film=hero["id"]; st.session_state.playing_film=True; st.rerun()
-        if st.button("Film suivant"): st.session_state.hero_index+=1; st.rerun()
+        
+        # 1 SEULE FENETRE PRINCIPALE
+        if hero.get("trailer_url"): 
+            st.video(hero["trailer_url"])
         st.write(f"**{hero['titre']}**")
-    for f in filtered:
+        
+        c1,c2=st.columns(2)
+        with c1:
+            if st.button("◀ Précédent"):
+                st.session_state.hero_index -= 1
+                st.rerun()
+        with c2:
+            if st.button("Suivant ▶"):
+                st.session_state.hero_index += 1
+                st.rerun()
+        
         st.divider()
-        if f.get("trailer_url"): st.video(f["trailer_url"])
-        st.write(f"{f['titre']} - {f['genre']}")
+        st.subheader("Tous les films")
+        
+        # CARREAUX EN BAS
+        cols = st.columns(4)
+        for idx, f in enumerate(filtered):
+            with cols[idx % 4]:
+                if f.get("image_url"):
+                    st.image(f["image_url"], use_container_width=True)
+                st.write(f"**{f['titre']}**")
+                if st.button("Voir", key=f"tile_{f['id']}", use_container_width=True):
+                    st.session_state.hero_index = idx
+                    st.rerun()
 elif menu=="Espace Associe":
     st.title("Espace Associe")
     code=st.text_input("Code",type="password")
