@@ -30,7 +30,6 @@ st.markdown("""
 header{visibility:hidden!important;}
 .stApp{background:#000!important;}
 .block-container{padding-top:95px!important;}
-/* LOGO NETFLIX A GAUCHE */
 .netflix-top{
     position:fixed!important;
     top:0!important; left:0!important; right:0!important;
@@ -68,14 +67,13 @@ if "films" not in st.session_state:
             with open(DATA_FILE,"r") as f: st.session_state.films=json.load(f)
         except: st.session_state.films=[]
     else: st.session_state.films=[]
-for k in ["selected_film","playing_film","menu_open","current_page","hero_index","genre_filter","edit_id"]:
+for k in ["selected_film","playing_film","menu_open","current_page","hero_index","genre_filter","edit_id","auto_count"]:
     if k not in st.session_state:
-        st.session_state[k]=None if k in ["selected_film","edit_id"] else False if k in ["playing_film","menu_open"] else "Accueil" if k=="current_page" else 0 if k=="hero_index" else "Tous"
+        st.session_state[k]=None if k in ["selected_film","edit_id"] else False if k in ["playing_film","menu_open"] else "Accueil" if k=="current_page" else 0 if k in ["hero_index","auto_count"] else "Tous"
 
 def save_films():
     with open(DATA_FILE,"w") as f: json.dump(st.session_state.films,f,indent=2,default=str)
 
-# MENU
 if st.session_state.current_page=="Accueil":
     st.markdown('<div class="genre-fixed">', unsafe_allow_html=True)
     s=st.pills("",GENRES,default=st.session_state.genre_filter,selection_mode="single",label_visibility="collapsed")
@@ -92,39 +90,47 @@ if st.session_state.menu_open:
     if st.button("Fermer"): st.session_state.menu_open=False; st.rerun()
 
 menu=st.session_state.current_page
+
 if menu=="Accueil":
     filtered=[f for f in st.session_state.films if st.session_state.genre_filter=="Tous" or f["genre"]==st.session_state.genre_filter]
     if filtered:
+        try:
+            from streamlit_autorefresh import st_autorefresh
+            count = st_autorefresh(interval=8000, key="netflix_auto")
+            if count!= st.session_state.auto_count:
+                st.session_state.hero_index = (st.session_state.hero_index + 1) % len(filtered)
+                st.session_state.auto_count = count
+        except: pass
+
         hero=filtered[st.session_state.hero_index % len(filtered)]
-        
-        # 1 SEULE FENETRE PRINCIPALE
-        if hero.get("trailer_url"): 
-            st.video(hero["trailer_url"])
-        st.write(f"**{hero['titre']}**")
-        
-        c1,c2=st.columns(2)
-        with c1:
+        if hero.get("trailer_url"): st.video(hero["trailer_url"])
+        st.markdown(f"### 🔥 {hero['titre']}")
+
+        cc1,cc2,cc3=st.columns([1,1,3])
+        with cc1:
             if st.button("◀ Précédent"):
                 st.session_state.hero_index -= 1
                 st.rerun()
-        with c2:
+        with cc2:
             if st.button("Suivant ▶"):
                 st.session_state.hero_index += 1
                 st.rerun()
-        
+        with cc3:
+            st.write(f"{st.session_state.hero_index+1}/{len(filtered)} - Auto 8s")
+
         st.divider()
         st.subheader("Tous les films")
-        
-        # CARREAUX EN BAS
         cols = st.columns(4)
         for idx, f in enumerate(filtered):
             with cols[idx % 4]:
-                if f.get("image_url"):
-                    st.image(f["image_url"], use_container_width=True)
+                if f.get("image_url"): st.image(f["image_url"], use_container_width=True)
                 st.write(f"**{f['titre']}**")
                 if st.button("Voir", key=f"tile_{f['id']}", use_container_width=True):
                     st.session_state.hero_index = idx
                     st.rerun()
+    else:
+        st.info("Aucun film")
+
 elif menu=="Espace Associe":
     st.title("Espace Associe")
     code=st.text_input("Code",type="password")
