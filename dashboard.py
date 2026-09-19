@@ -1,7 +1,13 @@
 import streamlit as st
 import random
 from datetime import datetime
-from src.congostream.storage import upload_cloud, save_films
+try:
+    from src.congostream.storage import upload_cloud, save_films
+except:
+    try:
+        from congostream.storage import upload_cloud, save_films
+    except:
+        from storage import upload_cloud, save_films
 
 if "films" not in st.session_state:
     st.session_state.films = []
