@@ -12,7 +12,7 @@ try:
 except: CLOUD_OK=False
 
 def upload_cloud(f,folder):
-    if not f or not CLOUD_OK: return None
+    if not f or not CLOUD_OK: return None, 0
     try:
         s=os.path.splitext(f.name)[1]
         with tempfile.NamedTemporaryFile(delete=False,suffix=s) as t:
@@ -20,8 +20,11 @@ def upload_cloud(f,folder):
             p=t.name
         r=cloudinary.uploader.upload(p,resource_type="auto",folder=folder,chunk_size=6000000)
         os.remove(p)
-        return r.get("secure_url")
-    except: return None
+        url = r.get("secure_url")
+        duree = r.get("duration", 8)
+        if not duree: duree = 8
+        return url, int(duree)
+    except: return None, 0
 
 GENRES=["Tous","Action","Animation","Aventure","Biopic","Comedie","Documentaire","Drame","Horreur","Erotique","Espionnage","Fantastique","Guerre","Policier","Romance","Sci-Fi","Thriller"]
 
@@ -147,12 +150,12 @@ elif menu=="Espace Associe":
                 affiche=st.file_uploader("Pochette",type=["jpg","png","webp"])
                 if st.form_submit_button("PUBLIER",type="primary"):
                     if titre and trailer:
-                        t_url=upload_cloud(trailer,"congo_trailers")
-                        f_url=upload_cloud(film_c,"congo_films") if film_c else None
-                        i_url=upload_cloud(affiche,"congo_images") if affiche else None
+                        t_url, t_duree = upload_cloud(trailer,"congo_trailers")
+f_url, _ = upload_cloud(film_c,"congo_films") if film_c else (None, 0)
+i_url, _ = upload_cloud(affiche,"congo_images") if affiche else (None, 0)
                         if t_url:
                             now=datetime.now()
-                            st.session_state.films.append({"id":random.randint(1000,99999),"titre":titre,"genre":genre,"annee":annee,"desc":desc,"trailer_url":t_url,"film_url":f_url,"image_url":i_url,"timestamp":now.strftime("%d/%m/%Y à %H:%M:%S")})
+                            st.session_state.films.append({"id":random.randint(1000,99999),"titre":titre,"duree"genre":t_duree,:genre,"annee":annee,"desc":desc,"trailer_url":t_url,"film_url":f_url,"image_url":i_url,"timestamp":now.strftime("%d/%m/%Y à %H:%M:%S")})
                             save_films(); st.balloons(); st.success("Publie!")
         with t2:
             for film in reversed(st.session_state.films):
