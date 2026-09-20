@@ -6,29 +6,19 @@ import cloudinary.uploader
 
 st.set_page_config(page_title="CongoStream", layout="wide", page_icon="🎬")
 
-# --- CSS NETFLIX ---
 st.markdown("""
 <style>
-.netflix-header {
+.congo-header {
     background: linear-gradient(to bottom, #000000 0%, #141414 100%);
     padding: 20px;
     border-radius: 10px;
     margin-bottom: 20px;
 }
-.netflix-title {
+.congo-title {
     color: #E50914;
     font-size: 40px;
     font-weight: 900;
     letter-spacing: 2px;
-}
-.film-card {
-    background: #1F1F1F;
-    border-radius: 8px;
-    padding: 10px;
-    transition: transform 0.3s;
-}
-.film-card:hover {
-    transform: scale(1.05);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -44,7 +34,6 @@ except Exception as e:
     st.stop()
 
 FILMS_FILE = "films.json"
-
 def charger():
     if os.path.exists(FILMS_FILE):
         try:
@@ -52,11 +41,9 @@ def charger():
                 return json.load(f)
         except: return []
     return []
-
 def sauvegarder(films):
     with open(FILMS_FILE, "w", encoding="utf-8") as f:
         json.dump(films, f, indent=2, ensure_ascii=False)
-
 def upload(file, folder):
     if not file: return ""
     try:
@@ -72,20 +59,20 @@ PAIEMENTS = ["Gratuit","Location 500 FCFA / 24h","Location 1000 FCFA / 48h","Ach
 
 films = charger()
 
-# ===== HEADER NETFLIX - TON ACCUEIL =====
-st.markdown('<div class="netflix-header"><span class="netflix-title">CONGOSTREAM</span> <span style="color:white; margin-left:20px;">Dashboard Boss</span></div>', unsafe_allow_html=True)
+# ===== HEADER CORRIGÉ By.Mr_Joksan =====
+st.markdown('<div class="congo-header"><span class="congo-title">CONGOSTREAM</span> <span style="color:white; margin-left:20px; font-size:18px;">By.Mr_Joksan</span></div>', unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["🏠 ACCUEIL NETFLIX", "➕ PUBLIER UN FILM"])
+# Onglets corrigés sans Netflix
+tab1, tab2 = st.tabs(["🏠 ACCUEIL", "➕ PUBLIER UN FILM"])
 
 with tab1:
-    # --- HERO BANNER COMME NETFLIX ---
     if films:
         dernier = films[-1]
-        col_hero1, col_hero2 = st.columns([2,1])
-        with col_hero1:
+        col1, col2 = st.columns([2,1])
+        with col1:
             if dernier.get("image_url"):
                 st.image(dernier["image_url"], use_container_width=True)
-        with col_hero2:
+        with col2:
             st.markdown(f"### 🎬 {dernier['titre']}")
             st.write(f"**{dernier.get('genre','')}** • {dernier.get('annee','')} • {dernier.get('qualite','HD')}")
             st.write(dernier.get('desc',''))
@@ -93,19 +80,14 @@ with tab1:
             if dernier.get("bande_annonce_url") or dernier.get("trailer_url"):
                 st.video(dernier.get("bande_annonce_url") or dernier.get("trailer_url"))
     else:
-        st.info("Aucun film - Publie ton premier dans l'onglet PUBLIER Boss!")
+        st.info("Aucun film - Publie ton premier dans l'onglet PUBLIER UN FILM!")
 
     st.divider()
-    
-    # --- CATALOGUE NETFLIX PAR GENRE ---
     st.subheader(f"📚 Catalogue complet ({len(films)} films)")
     
     if films:
-        # Recherche
-        recherche = st.text_input("🔍 Rechercher un film", placeholder="Titre, genre...")
+        recherche = st.text_input("🔍 Rechercher", placeholder="Titre, genre...")
         films_filtres = [f for f in films if recherche.lower() in f['titre'].lower() or recherche.lower() in f.get('genre','').lower()] if recherche else films
-        
-        # Affichage en grille Netflix
         cols = st.columns(4)
         for idx, film in enumerate(reversed(films_filtres)):
             with cols[idx % 4]:
@@ -122,13 +104,10 @@ with tab1:
                         if film.get("film_url"):
                             st.write("🎬 Film Complet")
                             st.video(film["film_url"])
-                        elif film.get("video_url"):
-                            st.video(film["video_url"])
     else:
-        st.write("Catalogue vide Boss")
+        st.write("Catalogue vide")
 
 with tab2:
-    # ===== PARTIE PUBLIER QUE TU AIMES - GARDÉE =====
     st.subheader("Publier un nouveau film")
     with st.form("ajout_film", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -154,10 +133,9 @@ with tab2:
             film_f = st.file_uploader("Film complet", type=["mp4","mov","mkv","avi"])
 
         btn = st.form_submit_button("🚀 Publier le film", use_container_width=True)
-
         if btn:
             if not titre:
-                st.error("Mets le titre Boss!")
+                st.error("Mets le titre!")
             else:
                 with st.spinner("Upload Cloudinary..."):
                     url_img = upload(img, "congostream/affiches")
